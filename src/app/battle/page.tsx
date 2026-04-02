@@ -18,611 +18,601 @@ import {
 } from "@/lib/battleEngine";
 import { fetchPokemon, fetchMove, getPokemonImageUrl } from "@/lib/api";
 
-/* --- type colours ----------------------------------------------- */
-const TC: Record<string, string> = {
-  normal:"#A8A878",fire:"#F08030",water:"#6890F0",electric:"#F8D030",
-  grass:"#78C850",ice:"#98D8D8",fighting:"#C03028",poison:"#A040A0",
-  ground:"#E0C068",flying:"#A890F0",psychic:"#F85888",bug:"#A8B820",
-  rock:"#B8A038",ghost:"#705898",dragon:"#7038F8",dark:"#705848",
-  steel:"#B8B8D0",fairy:"#EE99AC",
+/* ================================================================
+   CONSTANTS
+   ================================================================ */
+
+const TYPE_CLR: Record<string, string> = {
+  normal:"#9DA0AA",fire:"#FF9741",water:"#3692DC",electric:"#FBD100",
+  grass:"#38BF4B",ice:"#4CD1C0",fighting:"#E0306A",poison:"#B567CE",
+  ground:"#E87236",flying:"#89AAE3",psychic:"#FF6568",bug:"#83C300",
+  rock:"#C8B686",ghost:"#4C6AB2",dragon:"#006FC9",dark:"#5B5466",
+  steel:"#5A8EA2",fairy:"#FB89EB",
 };
 
-/* --- CSS keyframes (injected once) ------------------------------ */
-const STYLE_ID = "battle-anims";
-function injectStyles() {
+const STATUS_CLR: Record<string, string> = {
+  burn:"#FF6B35",paralyze:"#F7D02C",poison:"#A552CC",sleep:"#7C8A99",freeze:"#7DD3FC",
+};
+
+/* ================================================================
+   CSS ANIMATIONS
+   ================================================================ */
+const STYLE_ID = "pv-battle-css";
+function injectCSS() {
   if (typeof document === "undefined") return;
   if (document.getElementById(STYLE_ID)) return;
-  const s = document.createElement("style");
-  s.id = STYLE_ID;
-  s.textContent = `
-    @keyframes b-idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-    @keyframes b-atk-player{0%{transform:translate(0,0)}30%{transform:translate(60px,-30px) scale(1.08)}60%{transform:translate(60px,-30px) scale(1.08)}100%{transform:translate(0,0)}}
-    @keyframes b-atk-ai{0%{transform:translate(0,0)}30%{transform:translate(-60px,30px) scale(1.08)}60%{transform:translate(-60px,30px) scale(1.08)}100%{transform:translate(0,0)}}
-    @keyframes b-hit{0%{filter:brightness(1)}15%{filter:brightness(3)}30%{filter:brightness(1);transform:translateX(8px)}45%{transform:translateX(-8px)}60%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{filter:brightness(1);transform:translateX(0)}}
-    @keyframes b-faint{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(40px)}}
-    @keyframes b-enter{0%{opacity:0;transform:scale(0.3) translateY(20px)}60%{opacity:1;transform:scale(1.1) translateY(-5px)}100%{transform:scale(1) translateY(0)}}
-    @keyframes b-flash{0%,100%{opacity:1}50%{opacity:0.2}}
-    @keyframes b-super{0%{box-shadow:0 0 0 0 rgba(250,204,21,0.6)}100%{box-shadow:0 0 40px 20px rgba(250,204,21,0)}}
-    @keyframes b-shake-screen{0%,100%{transform:translate(0,0)}10%{transform:translate(-3px,2px)}20%{transform:translate(4px,-2px)}30%{transform:translate(-2px,3px)}40%{transform:translate(3px,-1px)}50%{transform:translate(-1px,2px)}60%{transform:translate(2px,-3px)}70%{transform:translate(-3px,1px)}80%{transform:translate(1px,-2px)}90%{transform:translate(-2px,3px)}}
-    @keyframes b-hp-drain{0%{filter:brightness(1.3)}100%{filter:brightness(1)}}
-    @keyframes b-pokeball-open{0%{transform:scale(1) rotate(0deg);opacity:1}50%{transform:scale(1.3) rotate(180deg);opacity:1}100%{transform:scale(0) rotate(360deg);opacity:0}}
-    @keyframes b-type-pulse{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
-    .anim-idle{animation:b-idle 2.5s ease-in-out infinite}
-    .anim-atk-player{animation:b-atk-player 0.6s ease-in-out forwards}
-    .anim-atk-ai{animation:b-atk-ai 0.6s ease-in-out forwards}
-    .anim-hit{animation:b-hit 0.5s ease-out forwards}
-    .anim-faint{animation:b-faint 0.8s ease-in forwards}
-    .anim-enter{animation:b-enter 0.6s ease-out forwards}
-    .anim-flash{animation:b-flash 0.15s ease-in-out 3}
-    .anim-super{animation:b-super 0.6s ease-out}
-    .anim-shake-screen{animation:b-shake-screen 0.4s ease-in-out}
-    .anim-hp-drain{animation:b-hp-drain 0.3s ease-out}
-    .anim-pokeball{animation:b-pokeball-open 0.5s ease-in-out forwards}
-    .anim-type-pulse{animation:b-type-pulse 0.3s ease-in-out}
+  const el = document.createElement("style");
+  el.id = STYLE_ID;
+  el.textContent = `
+    @keyframes pv-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    @keyframes pv-atk-r{0%{transform:translateX(0)}25%{transform:translateX(40px)}50%{transform:translateX(40px) scale(1.05)}100%{transform:translateX(0)}}
+    @keyframes pv-atk-l{0%{transform:translateX(0)}25%{transform:translateX(-40px)}50%{transform:translateX(-40px) scale(1.05)}100%{transform:translateX(0)}}
+    @keyframes pv-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+    @keyframes pv-faint{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(30px)}}
+    @keyframes pv-enter{0%{opacity:0;transform:scale(.4)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+    @keyframes pv-flash{0%,100%{opacity:1}50%{opacity:.25}}
+    @keyframes pv-blink{0%,100%{border-color:rgba(255,255,255,.15)}50%{border-color:rgba(255,255,255,.4)}}
+    @keyframes pv-scanline{0%{background-position:0 0}100%{background-position:0 4px}}
+    .pv-bob{animation:pv-bob 2s ease-in-out infinite}
+    .pv-atk-r{animation:pv-atk-r .45s ease-in-out}
+    .pv-atk-l{animation:pv-atk-l .45s ease-in-out}
+    .pv-shake{animation:pv-shake .35s ease-in-out}
+    .pv-faint{animation:pv-faint .7s ease-in forwards}
+    .pv-enter{animation:pv-enter .5s ease-out}
+    .pv-flash{animation:pv-flash .12s ease-in-out 3}
+    .pv-blink{animation:pv-blink 1.2s ease-in-out infinite}
   `;
-  document.head.appendChild(s);
+  document.head.appendChild(el);
 }
 
-/* --- phases ----------------------------------------------------- */
-type Phase = "select" | "loading" | "battle" | "switching" | "result";
+/* ================================================================
+   TYPES & HELPERS
+   ================================================================ */
+type Phase = "menu" | "loading" | "battle" | "switch-forced" | "result";
+type Anim = "idle" | "atk" | "hit" | "faint" | "enter" | "flash" | "none";
 
-/* --- sprite animation state ------------------------------------- */
-type SpriteAnim = "idle" | "attack" | "hit" | "faint" | "enter" | "flash" | "none";
-
-/* --- build a BattlePokemon -------------------------------------- */
-async function buildBattlePokemon(id: number, isPlayer: boolean): Promise<BattlePokemon> {
-  const data = await fetchPokemon(id);
-  const allMoves = data.moves || [];
-  const shuffled = [...allMoves].sort(() => Math.random() - 0.5).slice(0, 12);
-  const moveDetails: BattleMove[] = [];
-  for (const entry of shuffled) {
+async function buildPokemon(id: number, isPlayer: boolean): Promise<BattlePokemon> {
+  const d = await fetchPokemon(id);
+  const pool = [...(d.moves || [])].sort(() => Math.random() - .5).slice(0, 12);
+  const details: BattleMove[] = [];
+  for (const e of pool) {
     try {
-      const md = await fetchMove(entry.move.name);
-      moveDetails.push({ name:md.name, type:md.type.name, damageClass:md.damage_class.name, power:md.power, accuracy:md.accuracy, pp:md.pp??10, maxPp:md.pp??10, priority:md.priority??0 });
+      const m = await fetchMove(e.move.name);
+      details.push({
+        name: m.name, type: m.type.name, damageClass: m.damage_class.name,
+        power: m.power, accuracy: m.accuracy, pp: m.pp ?? 10, maxPp: m.pp ?? 10,
+        priority: m.priority ?? 0,
+      });
     } catch {}
   }
-  const dmg = moveDetails.filter(m=>m.power&&m.power>0).sort((a,b)=>(b.power||0)-(a.power||0));
-  const sts = moveDetails.filter(m=>!m.power||m.power===0);
-  let moves = dmg.length>=4 ? dmg.slice(0,4) : [...dmg,...sts].slice(0,4);
-  if(!moves.length) moves=[{name:"Struggle",type:"normal",damageClass:"physical",power:50,accuracy:null,pp:99,maxPp:99,priority:0}];
-  const stats = { hp:calcHp(data.stats[0].base_stat), attack:calcStat(data.stats[1].base_stat), defense:calcStat(data.stats[2].base_stat), spAtk:calcStat(data.stats[3].base_stat), spDef:calcStat(data.stats[4].base_stat), speed:calcStat(data.stats[5].base_stat) };
-  return { id:data.id, name:data.name, types:data.types.map((t:{type:{name:string}})=>t.type.name), stats, currentHp:stats.hp, maxHp:stats.hp, moves, status:null, statusTurns:0, sprite:getPokemonImageUrl(data.id), isPlayer };
+  const dmg = details.filter(m => m.power && m.power > 0).sort((a, b) => (b.power || 0) - (a.power || 0));
+  const status = details.filter(m => !m.power || m.power === 0);
+  let moves = dmg.length >= 4 ? dmg.slice(0, 4) : [...dmg, ...status].slice(0, 4);
+  if (!moves.length) moves = [{ name: "Struggle", type: "normal", damageClass: "physical", power: 50, accuracy: null, pp: 99, maxPp: 99, priority: 0 }];
+  const s = {
+    hp: calcHp(d.stats[0].base_stat), attack: calcStat(d.stats[1].base_stat),
+    defense: calcStat(d.stats[2].base_stat), spAtk: calcStat(d.stats[3].base_stat),
+    spDef: calcStat(d.stats[4].base_stat), speed: calcStat(d.stats[5].base_stat),
+  };
+  return {
+    id: d.id, name: d.name,
+    types: d.types.map((t: { type: { name: string } }) => t.type.name),
+    stats: s, currentHp: s.hp, maxHp: s.hp, moves, status: null, statusTurns: 0,
+    sprite: getPokemonImageUrl(d.id), isPlayer,
+  };
 }
 
-/* --- delay helper ----------------------------------------------- */
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-/* --- typewriter component --------------------------------------- */
-function TypewriterText({ text, speed = 25, onDone }: { text: string; speed?: number; onDone?: () => void }) {
-  const [displayed, setDisplayed] = useState("");
-  const idx = useRef(0);
-  useEffect(() => {
-    setDisplayed("");
-    idx.current = 0;
-    const iv = setInterval(() => {
-      idx.current++;
-      setDisplayed(text.slice(0, idx.current));
-      if (idx.current >= text.length) { clearInterval(iv); onDone?.(); }
-    }, speed);
-    return () => clearInterval(iv);
-  }, [text, speed]);
-  return <>{displayed}<span className="animate-pulse">|</span></>;
+const hpColor = (pct: number) => pct > .5 ? "#4ADE80" : pct > .25 ? "#FACC15" : "#EF4444";
+const hpPct = (cur: number, max: number) => Math.max(0, Math.min(100, (cur / max) * 100));
+
+const animClass = (a: Anim, isPlayer: boolean) => {
+  if (a === "idle") return "pv-bob";
+  if (a === "atk") return isPlayer ? "pv-atk-r" : "pv-atk-l";
+  if (a === "hit") return "pv-shake";
+  if (a === "faint") return "pv-faint";
+  if (a === "enter") return "pv-enter";
+  if (a === "flash") return "pv-flash";
+  return "";
+};
+
+/* ================================================================
+   COMPONENTS
+   ================================================================ */
+
+/* -- HP Bar (game-style thin bar with label) -- */
+function HPBar({ cur, max, showText }: { cur: number; max: number; showText?: boolean }) {
+  const pct = hpPct(cur, max);
+  const clr = hpColor(cur / max);
+  return (
+    <div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-bold text-yellow-300/80 tracking-wider">HP</span>
+        <div className="flex-1 h-[6px] bg-[#1a1a2e] rounded-full overflow-hidden border border-white/5">
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out"
+            style={{ width: `${pct}%`, background: `linear-gradient(180deg, ${clr}, ${clr}cc)` }}
+          />
+        </div>
+      </div>
+      {showText && (
+        <p className="text-right text-[11px] font-mono text-white/40 mt-0.5">
+          {Math.max(0, cur)} / {max}
+        </p>
+      )}
+    </div>
+  );
 }
 
-/* ===================================================================
-   MAIN COMPONENT
-   =================================================================== */
+/* -- Type Badge -- */
+function TypeBadge({ type }: { type: string }) {
+  return (
+    <span
+      className="inline-block text-[9px] font-bold uppercase px-2 py-[2px] rounded tracking-wide"
+      style={{ background: TYPE_CLR[type] || "#666", color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}
+    >
+      {type}
+    </span>
+  );
+}
+
+/* -- Status Badge -- */
+function StatusBadge({ status }: { status: string | null }) {
+  if (!status) return null;
+  const label = status.slice(0, 3).toUpperCase();
+  return (
+    <span
+      className="inline-block text-[9px] font-bold uppercase px-2 py-[2px] rounded ml-1 tracking-wide"
+      style={{ background: STATUS_CLR[status] || "#888", color: "#fff" }}
+    >
+      {label}
+    </span>
+  );
+}
+
+/* -- Nameplate (game-style info panel) -- */
+function Nameplate({
+  pokemon, displayHp, isPlayer, teamDots,
+}: {
+  pokemon: BattlePokemon; displayHp: number; isPlayer: boolean;
+  teamDots: { alive: boolean; active: boolean }[];
+}) {
+  return (
+    <div className={`
+      relative px-4 py-2.5 rounded-xl
+      bg-gradient-to-b from-[#1e293b] to-[#0f172a]
+      border border-white/10 shadow-lg shadow-black/30
+      ${isPlayer ? "min-w-[240px]" : "min-w-[220px]"}
+    `}>
+      {/* Name row */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-bold text-[15px] text-white tracking-wide">
+          {formatName(pokemon.name)}
+        </span>
+        {isPlayer && (
+          <span className="text-[10px] text-white/30 font-mono">Lv50</span>
+        )}
+      </div>
+
+      {/* Types + status */}
+      <div className="flex items-center gap-1 mb-2">
+        {pokemon.types.map(t => <TypeBadge key={t} type={t} />)}
+        <StatusBadge status={pokemon.status} />
+      </div>
+
+      {/* HP bar */}
+      <HPBar cur={displayHp} max={pokemon.maxHp} showText={isPlayer} />
+
+      {/* Team dots */}
+      <div className={`flex gap-1 mt-1.5 ${isPlayer ? "justify-end" : "justify-start"}`}>
+        {teamDots.map((d, i) => (
+          <div
+            key={i}
+            className={`w-2 h-2 rounded-full transition-all ${
+              d.active ? "bg-green-400 shadow-sm shadow-green-400/50"
+              : d.alive ? "bg-white/25"
+              : "bg-red-500/40"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   MAIN PAGE COMPONENT
+   ================================================================ */
 export default function BattlePage() {
-  const [phase, setPhase] = useState<Phase>("select");
-  const [difficulty, setDifficulty] = useState<Difficulty>("normal");
 
-  const [playerTeam, setPlayerTeam] = useState<BattlePokemon[]>([]);
-  const [aiTeam, setAiTeam] = useState<BattlePokemon[]>([]);
-  const [activePlayer, setActivePlayer] = useState(0);
-  const [activeAi, setActiveAi] = useState(0);
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [searchResults, setSearchResults] = useState<{id:number;name:string}[]>([]);
-  const [searching, setSearching] = useState(false);
-
-  // battle UI state
-  const [messageQueue, setMessageQueue] = useState<string[]>([]);
-  const [currentMessage, setCurrentMessage] = useState("");
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [winner, setWinner] = useState<"player"|"ai"|null>(null);
-  const [turnCount, setTurnCount] = useState(0);
-  const [showMoves, setShowMoves] = useState(true);
-
-  // animation state
-  const [playerAnim, setPlayerAnim] = useState<SpriteAnim>("idle");
-  const [aiAnim, setAiAnim] = useState<SpriteAnim>("idle");
-  const [screenShake, setScreenShake] = useState(false);
-  const [superFlash, setSuperFlash] = useState(false);
-
-  // HP display (for smooth drain)
-  const [displayPlayerHp, setDisplayPlayerHp] = useState(0);
-  const [displayAiHp, setDisplayAiHp] = useState(0);
-
-  // loading
-  const [loadingMsg, setLoadingMsg] = useState("");
-
-  // full battle log
-  const [battleLog, setBattleLog] = useState<string[]>([]);
+  /* --- state --- */
+  const [phase, setPhase] = useState<Phase>("menu");
+  const [diff, setDiff] = useState<Difficulty>("normal");
+  const [pTeam, setPTeam] = useState<BattlePokemon[]>([]);
+  const [aTeam, setATeam] = useState<BattlePokemon[]>([]);
+  const [pIdx, setPIdx] = useState(0);
+  const [aIdx, setAIdx] = useState(0);
+  const [pAnim, setPAnim] = useState<Anim>("idle");
+  const [aAnim, setAAnim] = useState<Anim>("idle");
+  const [dpHp, setDpHp] = useState(0);
+  const [daHp, setDaHp] = useState(0);
+  const [msg, setMsg] = useState("");
+  const [log, setLog] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [winner, setWinner] = useState<"p" | "a" | null>(null);
+  const [turn, setTurn] = useState(0);
   const [showLog, setShowLog] = useState(false);
+
+  /* menu state */
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<{ id: number; name: string }[]>([]);
+  const [picked, setPicked] = useState<number[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [loadMsg, setLoadMsg] = useState("");
+
   const logRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { injectStyles(); }, []);
+  useEffect(() => { injectCSS(); }, []);
+  useEffect(() => { if (pTeam[pIdx]) setDpHp(pTeam[pIdx].currentHp); }, [pTeam, pIdx]);
+  useEffect(() => { if (aTeam[aIdx]) setDaHp(aTeam[aIdx].currentHp); }, [aTeam, aIdx]);
+  useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [log]);
 
-  // sync display HP
-  useEffect(() => {
-    if (playerTeam[activePlayer]) setDisplayPlayerHp(playerTeam[activePlayer].currentHp);
-  }, [playerTeam, activePlayer]);
-  useEffect(() => {
-    if (aiTeam[activeAi]) setDisplayAiHp(aiTeam[activeAi].currentHp);
-  }, [aiTeam, activeAi]);
-
-  // auto scroll log
-  useEffect(() => { if(logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [battleLog]);
-
-  /* --- animated HP drain ------------------------------------ */
-  const drainHp = (setter: (v:number)=>void, from: number, to: number) => {
-    return new Promise<void>(resolve => {
-      const steps = 20;
-      const diff = from - to;
-      let step = 0;
-      const iv = setInterval(() => {
-        step++;
-        setter(Math.round(from - (diff * step / steps)));
-        if (step >= steps) { clearInterval(iv); setter(to); resolve(); }
-      }, 30);
+  /* --- helpers --- */
+  const drainHp = (setter: (v: number) => void, from: number, to: number) =>
+    new Promise<void>(res => {
+      const steps = 20; const d = from - to; let s = 0;
+      const iv = setInterval(() => { s++; setter(Math.round(from - d * s / steps)); if (s >= steps) { clearInterval(iv); setter(to); res(); } }, 30);
     });
-  };
 
-  /* --- show message with typewriter ------------------------- */
-  const showMessage = (msg: string) => {
-    return new Promise<void>(resolve => {
-      setCurrentMessage(msg);
-      setBattleLog(prev => [...prev, msg]);
-      setTimeout(resolve, Math.max(800, msg.length * 30 + 400));
-    });
-  };
+  const say = (m: string) => new Promise<void>(res => {
+    setMsg(m);
+    setLog(p => [...p, m]);
+    setTimeout(res, Math.max(700, m.length * 25 + 300));
+  });
 
-  /* --- search ----------------------------------------------- */
-  const searchPokemon = useCallback(async (q: string) => {
-    if (!q.trim()) { setSearchResults([]); return; }
+  /* --- search --- */
+  const search = useCallback(async (q: string) => {
+    if (!q.trim()) { setResults([]); return; }
     setSearching(true);
     try {
-      const numId = parseInt(q);
-      if (!isNaN(numId) && numId >= 1 && numId <= 1025) {
-        const p = await fetchPokemon(numId);
-        setSearchResults([{ id: p.id, name: p.name }]);
+      const n = parseInt(q);
+      if (!isNaN(n) && n >= 1 && n <= 1025) {
+        const p = await fetchPokemon(n);
+        setResults([{ id: p.id, name: p.name }]);
       } else {
         try {
           const p = await fetchPokemon(q.toLowerCase().trim());
-          setSearchResults([{ id: p.id, name: p.name }]);
+          setResults([{ id: p.id, name: p.name }]);
         } catch {
           const res = await fetch("https://pokeapi.co/api/v2/pokemon?limit=1025");
           const data = await res.json();
-          setSearchResults(data.results
-            .filter((r:{name:string}) => r.name.includes(q.toLowerCase().trim()))
-            .slice(0, 8)
-            .map((r:{name:string;url:string}) => ({ name:r.name, id:parseInt(r.url.split("/").filter(Boolean).pop()||"0") })));
+          setResults(
+            data.results
+              .filter((r: { name: string }) => r.name.includes(q.toLowerCase().trim()))
+              .slice(0, 8)
+              .map((r: { name: string; url: string }) => ({
+                name: r.name,
+                id: parseInt(r.url.split("/").filter(Boolean).pop() || "0"),
+              }))
+          );
         }
       }
-    } catch { setSearchResults([]); }
+    } catch { setResults([]); }
     setSearching(false);
   }, []);
 
-  /* --- start battles ---------------------------------------- */
-  const startBattle = async (pIds: number[], aIds: number[]) => {
+  /* --- start --- */
+  const startBattle = async (playerIds: number[], aiIds: number[]) => {
     setPhase("loading");
-    setLoadingMsg("Building teams...");
+    setLoadMsg("Preparing battle...");
     try {
-      setLoadingMsg("Loading your team...");
-      const pTeam = await Promise.all(pIds.map(id => buildBattlePokemon(id, true)));
-      setLoadingMsg("Loading opponent...");
-      const aTeam = await Promise.all(aIds.map(id => buildBattlePokemon(id, false)));
-      setPlayerTeam(pTeam);
-      setAiTeam(aTeam);
-      setActivePlayer(0);
-      setActiveAi(0);
-      setDisplayPlayerHp(pTeam[0].maxHp);
-      setDisplayAiHp(aTeam[0].maxHp);
-      setTurnCount(1);
-      setWinner(null);
-      setBattleLog([]);
-      setShowLog(false);
-      setShowMoves(false);
-
+      setLoadMsg("Loading your team...");
+      const pt = await Promise.all(playerIds.map(id => buildPokemon(id, true)));
+      setLoadMsg("Loading opponent...");
+      const at = await Promise.all(aiIds.map(id => buildPokemon(id, false)));
+      setPTeam(pt); setATeam(at);
+      setPIdx(0); setAIdx(0);
+      setDpHp(pt[0].maxHp); setDaHp(at[0].maxHp);
+      setTurn(1); setWinner(null); setLog([]); setShowLog(false);
       setPhase("battle");
 
-      // entry sequence
       await wait(300);
-      setPlayerAnim("enter");
-      await showMessage(`Go, ${formatName(pTeam[0].name)}!`);
-      setPlayerAnim("idle");
-      setAiAnim("enter");
-      await showMessage(`Opponent sent out ${formatName(aTeam[0].name)}!`);
-      setAiAnim("idle");
-      await wait(200);
-      setCurrentMessage("What will you do?");
-      setShowMoves(true);
+      setPAnim("enter");
+      await say(`Go, ${formatName(pt[0].name)}!`);
+      setPAnim("idle");
+      setAAnim("enter");
+      await say(`Opponent sent out ${formatName(at[0].name)}!`);
+      setAAnim("idle");
+      await wait(150);
+      setMsg("What will you do?");
     } catch {
-      setLoadingMsg("Error building teams.");
-      setTimeout(() => setPhase("select"), 2000);
+      setLoadMsg("Error loading. Retrying...");
+      setTimeout(() => setPhase("menu"), 2000);
     }
   };
 
-  const startQuickBattle = () => {
+  const quickBattle = () => {
     const used = new Set<number>();
-    const rnd = () => { let id; do { id = Math.floor(Math.random()*898)+1; } while(used.has(id)); used.add(id); return id; };
-    startBattle([rnd(),rnd(),rnd()], [rnd(),rnd(),rnd()]);
+    const r = () => { let id; do { id = Math.floor(Math.random() * 898) + 1; } while (used.has(id)); used.add(id); return id; };
+    startBattle([r(), r(), r()], [r(), r(), r()]);
   };
 
-  const startCustomBattle = () => {
-    if (!selectedIds.length) return;
-    const used = new Set(selectedIds);
-    const rnd = () => { let id; do { id = Math.floor(Math.random()*898)+1; } while(used.has(id)); used.add(id); return id; };
-    startBattle(selectedIds, Array.from({length:selectedIds.length}, rnd));
+  const customBattle = () => {
+    if (!picked.length) return;
+    const used = new Set(picked);
+    const r = () => { let id; do { id = Math.floor(Math.random() * 898) + 1; } while (used.has(id)); used.add(id); return id; };
+    startBattle(picked, Array.from({ length: picked.length }, r));
   };
 
-  /* --- execute turn (animated) ------------------------------ */
-  const executeTurn = async (playerMoveIndex: number) => {
-    if (isAnimating || winner) return;
-    setIsAnimating(true);
-    setShowMoves(false);
+  /* --- execute turn --- */
+  const doTurn = async (moveIdx: number) => {
+    if (busy || winner) return;
+    setBusy(true);
 
-    const player = { ...playerTeam[activePlayer] };
-    const ai = { ...aiTeam[activeAi] };
-    const playerMove = player.moves[playerMoveIndex];
-    const aiMove = aiSelectMove(ai, player, difficulty);
+    const player = { ...pTeam[pIdx] };
+    const ai = { ...aTeam[aIdx] };
+    const pMove = player.moves[moveIdx];
+    const aMove = aiSelectMove(ai, player, diff);
+    pMove.pp = Math.max(0, pMove.pp - 1);
+    const ar = ai.moves.find(m => m.name === aMove.name);
+    if (ar) ar.pp = Math.max(0, ar.pp - 1);
 
-    playerMove.pp = Math.max(0, playerMove.pp - 1);
-    const aiRef = ai.moves.find(m => m.name === aiMove.name);
-    if (aiRef) aiRef.pp = Math.max(0, aiRef.pp - 1);
-
-    // determine order
     let playerFirst = true;
-    if (playerMove.priority !== aiMove.priority) {
-      playerFirst = playerMove.priority > aiMove.priority;
-    } else {
-      const pS = getEffectiveSpeed(player);
-      const aS = getEffectiveSpeed(ai);
-      playerFirst = pS > aS ? true : pS < aS ? false : Math.random() > 0.5;
+    if (pMove.priority !== aMove.priority) playerFirst = pMove.priority > aMove.priority;
+    else {
+      const ps = getEffectiveSpeed(player), as2 = getEffectiveSpeed(ai);
+      playerFirst = ps > as2 ? true : ps < as2 ? false : Math.random() > .5;
     }
 
     const turns = playerFirst
-      ? [{ atk: player, def: ai, move: playerMove, isP: true }, { atk: ai, def: player, move: aiMove, isP: false }]
-      : [{ atk: ai, def: player, move: aiMove, isP: false }, { atk: player, def: ai, move: playerMove, isP: true }];
+      ? [{ atk: player, def: ai, mv: pMove, isP: true }, { atk: ai, def: player, mv: aMove, isP: false }]
+      : [{ atk: ai, def: player, mv: aMove, isP: false }, { atk: player, def: ai, mv: pMove, isP: true }];
 
-    for (const turn of turns) {
-      if (turn.atk.currentHp <= 0) continue;
+    for (const t of turns) {
+      if (t.atk.currentHp <= 0) continue;
 
-      // status block
-      const sc = checkStatusBlock(turn.atk);
-      if (sc.cured) { turn.atk.status = null; turn.atk.statusTurns = 0; await showMessage(sc.message); }
+      const sc = checkStatusBlock(t.atk);
+      if (sc.cured) { t.atk.status = null; t.atk.statusTurns = 0; await say(sc.message); }
       if (sc.blocked) {
-        if (!sc.cured) {
-          if (turn.isP) { setPlayerAnim("flash"); } else { setAiAnim("flash"); }
-          await showMessage(sc.message);
-          if (turn.isP) setPlayerAnim("idle"); else setAiAnim("idle");
-        }
-        if (turn.atk.status === "sleep") turn.atk.statusTurns--;
+        if (!sc.cured) { (t.isP ? setPAnim : setAAnim)("flash"); await say(sc.message); (t.isP ? setPAnim : setAAnim)("idle"); }
+        if (t.atk.status === "sleep") t.atk.statusTurns--;
         continue;
       }
 
-      // attack animation
-      await showMessage(`${formatName(turn.atk.name)} used ${formatName(turn.move.name)}!`);
+      await say(`${formatName(t.atk.name)} used ${formatName(t.mv.name)}!`);
+      (t.isP ? setPAnim : setAAnim)("atk");
+      await wait(250);
 
-      if (turn.isP) { setPlayerAnim("attack"); } else { setAiAnim("attack"); }
-      await wait(300);
-
-      // accuracy
-      if (!checkAccuracy(turn.move)) {
-        if (turn.isP) setPlayerAnim("idle"); else setAiAnim("idle");
-        await showMessage(`${formatName(turn.atk.name)}'s attack missed!`);
+      if (!checkAccuracy(t.mv)) {
+        (t.isP ? setPAnim : setAAnim)("idle");
+        await say("But it missed!");
         continue;
       }
 
-      // damage
-      const result = calculateDamage(turn.atk, turn.def, turn.move);
+      const res = calculateDamage(t.atk, t.def, t.mv);
+      await wait(150);
+      (t.isP ? setAAnim : setPAnim)("hit");
+      (t.isP ? setPAnim : setAAnim)("idle");
+      await wait(350);
 
-      // hit animation on defender
-      await wait(200);
-      if (turn.isP) { setAiAnim("hit"); setPlayerAnim("idle"); } else { setPlayerAnim("hit"); setAiAnim("idle"); }
+      if (res.message) await say(res.message);
 
-      // screen shake on super effective
-      if (result.effectiveness >= 2) {
-        setScreenShake(true);
-        setSuperFlash(true);
-        setTimeout(() => { setScreenShake(false); setSuperFlash(false); }, 500);
-      }
-      await wait(400);
+      if (res.damage > 0) {
+        const old = t.def.currentHp;
+        t.def.currentHp = Math.max(0, t.def.currentHp - res.damage);
+        if (t.isP) { await drainHp(setDaHp, old, t.def.currentHp); setAAnim(t.def.currentHp <= 0 ? "faint" : "idle"); }
+        else { await drainHp(setDpHp, old, t.def.currentHp); setPAnim(t.def.currentHp <= 0 ? "faint" : "idle"); }
 
-      if (result.message) await showMessage(result.message);
-
-      if (result.damage > 0) {
-        const oldHp = turn.def.currentHp;
-        turn.def.currentHp = Math.max(0, turn.def.currentHp - result.damage);
-
-        // animate HP drain
-        if (turn.isP) {
-          await drainHp(setDisplayAiHp, oldHp, turn.def.currentHp);
-          setAiAnim(turn.def.currentHp <= 0 ? "faint" : "idle");
-        } else {
-          await drainHp(setDisplayPlayerHp, oldHp, turn.def.currentHp);
-          setPlayerAnim(turn.def.currentHp <= 0 ? "faint" : "idle");
-        }
-
-        const pct = Math.round((result.damage / turn.def.maxHp) * 100);
-        await showMessage(`${formatName(turn.def.name)} took ${result.damage} damage (${pct}%)!`);
-
-        if (turn.def.currentHp <= 0) {
-          await wait(600);
-          await showMessage(`${formatName(turn.def.name)} fainted!`);
-        }
+        const pctDmg = Math.round((res.damage / t.def.maxHp) * 100);
+        await say(`${formatName(t.def.name)} lost ${pctDmg}% HP!`);
+        if (t.def.currentHp <= 0) { await wait(500); await say(`${formatName(t.def.name)} fainted!`); }
       } else {
-        if (turn.isP) setAiAnim("idle"); else setPlayerAnim("idle");
+        (t.isP ? setAAnim : setPAnim)("idle");
       }
     }
 
-    // end-of-turn status damage
-    for (const pkmn of [player, ai]) {
-      if (pkmn.currentHp > 0) {
-        const sd = applyStatusDamage(pkmn);
+    // end-of-turn status
+    for (const pk of [player, ai]) {
+      if (pk.currentHp > 0) {
+        const sd = applyStatusDamage(pk);
         if (sd) {
-          const oldHp = pkmn.currentHp;
-          pkmn.currentHp = Math.max(0, pkmn.currentHp - sd.damage);
-          if (pkmn.isPlayer) {
-            setPlayerAnim("flash");
-            await drainHp(setDisplayPlayerHp, oldHp, pkmn.currentHp);
-            setPlayerAnim(pkmn.currentHp <= 0 ? "faint" : "idle");
-          } else {
-            setAiAnim("flash");
-            await drainHp(setDisplayAiHp, oldHp, pkmn.currentHp);
-            setAiAnim(pkmn.currentHp <= 0 ? "faint" : "idle");
-          }
-          await showMessage(sd.message);
-          if (pkmn.currentHp <= 0) await showMessage(`${formatName(pkmn.name)} fainted!`);
+          const old = pk.currentHp;
+          pk.currentHp = Math.max(0, pk.currentHp - sd.damage);
+          if (pk.isPlayer) { setPAnim("flash"); await drainHp(setDpHp, old, pk.currentHp); setPAnim(pk.currentHp <= 0 ? "faint" : "idle"); }
+          else { setAAnim("flash"); await drainHp(setDaHp, old, pk.currentHp); setAAnim(pk.currentHp <= 0 ? "faint" : "idle"); }
+          await say(sd.message);
+          if (pk.currentHp <= 0) await say(`${formatName(pk.name)} fainted!`);
         }
       }
     }
 
-    // update state
-    const nPT = [...playerTeam]; nPT[activePlayer] = player;
-    const nAT = [...aiTeam]; nAT[activeAi] = ai;
-    setPlayerTeam(nPT);
-    setAiTeam(nAT);
-    setTurnCount(t => t + 1);
+    // commit
+    const npt = [...pTeam]; npt[pIdx] = player;
+    const nat = [...aTeam]; nat[aIdx] = ai;
+    setPTeam(npt); setATeam(nat); setTurn(t2 => t2 + 1);
 
-    // check faints
+    // faint checks
     if (ai.currentHp <= 0) {
-      const next = nAT.findIndex((p, i) => i !== activeAi && p.currentHp > 0);
-      if (next === -1) {
-        await wait(500);
-        setWinner("player");
-        await showMessage("You win the battle!");
-        setPhase("result");
-        setIsAnimating(false);
-        return;
-      }
-      await wait(400);
-      setActiveAi(next);
-      setDisplayAiHp(nAT[next].currentHp);
-      setAiAnim("enter");
-      await showMessage(`Opponent sent out ${formatName(nAT[next].name)}!`);
-      setAiAnim("idle");
+      const next = nat.findIndex((p, i) => i !== aIdx && p.currentHp > 0);
+      if (next === -1) { setWinner("p"); await say("You won the battle!"); setPhase("result"); setBusy(false); return; }
+      await wait(300); setAIdx(next); setDaHp(nat[next].currentHp);
+      setAAnim("enter"); await say(`Opponent sent out ${formatName(nat[next].name)}!`); setAAnim("idle");
     }
 
     if (player.currentHp <= 0) {
-      const next = nPT.findIndex((p, i) => i !== activePlayer && p.currentHp > 0);
-      if (next === -1) {
-        await wait(500);
-        setWinner("ai");
-        await showMessage("You lost the battle...");
-        setPhase("result");
-        setIsAnimating(false);
-        return;
+      const next = npt.findIndex((p, i) => i !== pIdx && p.currentHp > 0);
+      if (next === -1) { setWinner("a"); await say("You lost the battle..."); setPhase("result"); setBusy(false); return; }
+      setPhase("switch-forced"); setBusy(false); return;
+    }
+
+    setMsg("What will you do?");
+    setBusy(false);
+  };
+
+  /* --- switching --- */
+  const doSwitch = async (idx: number, forced: boolean) => {
+    if (idx === pIdx || pTeam[idx].currentHp <= 0 || (busy && !forced)) return;
+    if (!forced) setBusy(true);
+
+    if (!forced) {
+      setPAnim("faint");
+      await say(`Come back, ${formatName(pTeam[pIdx].name)}!`);
+    }
+
+    setPIdx(idx); setDpHp(pTeam[idx].currentHp);
+    setPAnim("enter");
+    if (forced) setPhase("battle");
+    await say(`Go, ${formatName(pTeam[idx].name)}!`);
+    setPAnim("idle");
+
+    // if voluntary switch, AI attacks
+    if (!forced) {
+      const ai = { ...aTeam[aIdx] };
+      const target = { ...pTeam[idx] };
+      const aMove = aiSelectMove(ai, target, diff);
+      const ar = ai.moves.find(m => m.name === aMove.name);
+      if (ar) ar.pp = Math.max(0, ar.pp - 1);
+
+      const sc = checkStatusBlock(ai);
+      if (sc.cured) { ai.status = null; ai.statusTurns = 0; await say(sc.message); }
+      if (!sc.blocked) {
+        await say(`${formatName(ai.name)} used ${formatName(aMove.name)}!`);
+        setAAnim("atk"); await wait(250);
+        if (checkAccuracy(aMove)) {
+          const res = calculateDamage(ai, target, aMove);
+          setPAnim("hit"); setAAnim("idle"); await wait(350);
+          if (res.message) await say(res.message);
+          if (res.damage > 0) {
+            const old = target.currentHp;
+            target.currentHp = Math.max(0, target.currentHp - res.damage);
+            await drainHp(setDpHp, old, target.currentHp);
+            setPAnim(target.currentHp <= 0 ? "faint" : "idle");
+            await say(`${formatName(target.name)} lost ${Math.round(res.damage / target.maxHp * 100)}% HP!`);
+            if (target.currentHp <= 0) await say(`${formatName(target.name)} fainted!`);
+          } else { setPAnim("idle"); }
+        } else { setAAnim("idle"); await say("But it missed!"); }
+      } else if (!sc.cured) { setAAnim("flash"); await say(sc.message); setAAnim("idle"); }
+
+      const npt = [...pTeam]; npt[idx] = target;
+      const nat = [...aTeam]; nat[aIdx] = ai;
+      setPTeam(npt); setATeam(nat); setTurn(t2 => t2 + 1);
+
+      if (target.currentHp <= 0) {
+        const next = npt.findIndex((p, i) => i !== idx && p.currentHp > 0);
+        if (next === -1) { setWinner("a"); await say("You lost the battle..."); setPhase("result"); setBusy(false); return; }
+        setPhase("switch-forced"); setBusy(false); return;
       }
-      setPhase("switching");
-      setIsAnimating(false);
-      return;
     }
 
-    setCurrentMessage("What will you do?");
-    setShowMoves(true);
-    setIsAnimating(false);
+    setMsg("What will you do?");
+    setBusy(false);
   };
 
-  /* --- switch (forced) -------------------------------------- */
-  const switchPokemon = async (index: number) => {
-    if (index === activePlayer || playerTeam[index].currentHp <= 0) return;
-    setActivePlayer(index);
-    setDisplayPlayerHp(playerTeam[index].currentHp);
-    setPlayerAnim("enter");
-    setPhase("battle");
-    setShowMoves(false);
-    await showMessage(`Go, ${formatName(playerTeam[index].name)}!`);
-    setPlayerAnim("idle");
-    setCurrentMessage("What will you do?");
-    setShowMoves(true);
-  };
-
-  /* --- voluntary switch ------------------------------------- */
-  const voluntarySwitch = async (index: number) => {
-    if (index === activePlayer || playerTeam[index].currentHp <= 0 || isAnimating || winner) return;
-    setIsAnimating(true);
-    setShowMoves(false);
-
-    // recall current
-    setPlayerAnim("faint"); // reuse faint anim for recall
-    await showMessage(`Come back, ${formatName(playerTeam[activePlayer].name)}!`);
-
-    setActivePlayer(index);
-    setDisplayPlayerHp(playerTeam[index].currentHp);
-    setPlayerAnim("enter");
-    await showMessage(`Go, ${formatName(playerTeam[index].name)}!`);
-    setPlayerAnim("idle");
-
-    // AI attacks
-    const ai = { ...aiTeam[activeAi] };
-    const target = { ...playerTeam[index] };
-    const aiMove = aiSelectMove(ai, target, difficulty);
-    const aiRef = ai.moves.find(m => m.name === aiMove.name);
-    if (aiRef) aiRef.pp = Math.max(0, aiRef.pp - 1);
-
-    const sc = checkStatusBlock(ai);
-    if (sc.cured) { ai.status = null; ai.statusTurns = 0; await showMessage(sc.message); }
-    if (!sc.blocked) {
-      await showMessage(`${formatName(ai.name)} used ${formatName(aiMove.name)}!`);
-      setAiAnim("attack");
-      await wait(300);
-
-      if (checkAccuracy(aiMove)) {
-        const result = calculateDamage(ai, target, aiMove);
-        setPlayerAnim("hit");
-        setAiAnim("idle");
-        if (result.effectiveness >= 2) { setScreenShake(true); setSuperFlash(true); setTimeout(() => { setScreenShake(false); setSuperFlash(false); }, 500); }
-        await wait(400);
-        if (result.message) await showMessage(result.message);
-        if (result.damage > 0) {
-          const oldHp = target.currentHp;
-          target.currentHp = Math.max(0, target.currentHp - result.damage);
-          await drainHp(setDisplayPlayerHp, oldHp, target.currentHp);
-          setPlayerAnim(target.currentHp <= 0 ? "faint" : "idle");
-          await showMessage(`${formatName(target.name)} took ${result.damage} damage!`);
-          if (target.currentHp <= 0) await showMessage(`${formatName(target.name)} fainted!`);
-        } else {
-          setPlayerAnim("idle");
-        }
-      } else {
-        setAiAnim("idle");
-        await showMessage(`${formatName(ai.name)}'s attack missed!`);
-      }
-    } else if (!sc.cured) { setAiAnim("flash"); await showMessage(sc.message); setAiAnim("idle"); }
-
-    const nPT = [...playerTeam]; nPT[index] = target;
-    const nAT = [...aiTeam]; nAT[activeAi] = ai;
-    setPlayerTeam(nPT); setAiTeam(nAT);
-    setTurnCount(t => t + 1);
-
-    if (target.currentHp <= 0) {
-      const next = nPT.findIndex((p, i) => i !== index && p.currentHp > 0);
-      if (next === -1) { setWinner("ai"); await showMessage("You lost the battle..."); setPhase("result"); setIsAnimating(false); return; }
-      setPhase("switching"); setIsAnimating(false); return;
-    }
-
-    setCurrentMessage("What will you do?");
-    setShowMoves(true);
-    setIsAnimating(false);
-  };
-
-  /* --- HP bar colour ---------------------------------------- */
-  const hpCol = (c: number, m: number) => { const p=c/m; return p>0.5?"#22C55E":p>0.25?"#EAB308":"#EF4444"; };
-  const hpPct = (c: number, m: number) => Math.max(0, Math.min(100, (c/m)*100));
-
-  /* --- sprite class ----------------------------------------- */
-  const spriteClass = (anim: SpriteAnim, isPlayer: boolean) => {
-    switch(anim) {
-      case "idle": return "anim-idle";
-      case "attack": return isPlayer ? "anim-atk-player" : "anim-atk-ai";
-      case "hit": return "anim-hit";
-      case "faint": return "anim-faint";
-      case "enter": return "anim-enter";
-      case "flash": return "anim-flash";
-      default: return "";
-    }
-  };
-
-  /* ===============================================================
-     SELECT SCREEN
-     =============================================================== */
-  if (phase === "select") {
+  /* ================================================================
+     RENDER: MENU / TEAM SELECT
+     ================================================================ */
+  if (phase === "menu") {
     return (
-      <div className="min-h-screen bg-[#080810] text-white pt-24 pb-12 px-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-[#0a0a1a] text-white pt-24 pb-12 px-4">
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
           <div className="text-center mb-10">
-            <h1 className="text-5xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-red-500 via-yellow-400 to-red-500 bg-clip-text text-transparent">Battle Simulator</span>
+            <h1 className="text-4xl font-extrabold mb-2">
+              <span className="bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+                Battle Simulator
+              </span>
             </h1>
-            <p className="text-white/40">Real damage formulas  |  Type matchups  |  AI opponents  |  Animated battles</p>
+            <p className="text-white/30 text-sm">Gen V damage formulas | 18-type chart | 3v3 teams | AI difficulty</p>
           </div>
 
-          {/* difficulty */}
-          <div className="mb-8 text-center">
-            <p className="text-xs text-white/30 mb-3 uppercase tracking-widest">Difficulty</p>
-            <div className="flex justify-center gap-3">
-              {(["easy","normal","hard"] as Difficulty[]).map(d => (
-                <button key={d} onClick={()=>setDifficulty(d)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-bold capitalize transition-all ${
-                    difficulty===d
-                      ? d==="easy"?"bg-green-500/20 text-green-400 ring-1 ring-green-500/40"
-                        : d==="normal"?"bg-yellow-500/20 text-yellow-400 ring-1 ring-yellow-500/40"
-                        : "bg-red-500/20 text-red-400 ring-1 ring-red-500/40"
-                      : "bg-white/5 text-white/40 hover:bg-white/10"
-                  }`}>
-                  {d==="easy"?"\u{1F331} Easy":d==="normal"?"\u26A1 Normal":"\u{1F525} Hard"}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-white/25 mt-2">{difficulty==="easy"?"AI picks random moves":difficulty==="normal"?"AI weighs moves by power & type":"AI always picks the optimal move"}</p>
+          {/* Difficulty selector */}
+          <div className="flex justify-center gap-2 mb-8">
+            {(["easy", "normal", "hard"] as Difficulty[]).map(d => (
+              <button
+                key={d}
+                onClick={() => setDiff(d)}
+                className={`px-5 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
+                  diff === d
+                    ? "bg-white/10 text-white ring-1 ring-white/20"
+                    : "text-white/30 hover:text-white/50"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
           </div>
 
-          {/* quick battle */}
-          <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 mb-6 hover:border-white/10 transition-all">
-            <h2 className="text-lg font-bold mb-1">{String.fromCodePoint(0x1F3B2)} Quick Battle</h2>
-            <p className="text-white/35 text-sm mb-4">Random teams of 3. Jump right in!</p>
-            <button onClick={startQuickBattle} className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold py-3 px-8 rounded-xl transition-all text-lg shadow-lg shadow-red-500/20">
-              Start Quick Battle
-            </button>
-          </div>
+          {/* Quick battle */}
+          <button
+            onClick={quickBattle}
+            className="w-full mb-4 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 transition-all shadow-lg shadow-red-900/30 active:scale-[.98]"
+          >
+            Quick Battle - Random 3v3
+          </button>
 
-          {/* custom battle */}
-          <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all">
-            <h2 className="text-lg font-bold mb-1">{String.fromCodePoint(0x1F3AF)} Custom Battle</h2>
-            <p className="text-white/35 text-sm mb-4">Choose up to 3 Pok{"\u00E9"}mon</p>
-            <div className="flex gap-2 mb-4">
-              <input type="text" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&searchPokemon(searchQuery)}
+          {/* Custom battle */}
+          <div className="bg-white/[.03] border border-white/5 rounded-xl p-5">
+            <h2 className="font-bold text-sm text-white/50 uppercase tracking-wider mb-3">Custom Team</h2>
+            <div className="flex gap-2 mb-3">
+              <input
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && search(query)}
                 placeholder="Search by name or ID..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-white/25 transition-all" />
-              <button onClick={()=>searchPokemon(searchQuery)} disabled={searching}
-                className="bg-white/10 hover:bg-white/15 px-5 py-2.5 rounded-xl text-sm font-medium transition-all">
-                {searching?"...":"Search"}
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-white/25"
+              />
+              <button
+                onClick={() => search(query)}
+                disabled={searching}
+                className="bg-white/10 hover:bg-white/15 px-5 py-2 rounded-lg text-sm font-medium"
+              >
+                {searching ? "..." : "Search"}
               </button>
             </div>
-            {searchResults.length>0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                {searchResults.map(r=>(
-                  <button key={r.id} onClick={()=>{if(selectedIds.length<3&&!selectedIds.includes(r.id))setSelectedIds([...selectedIds,r.id]);}}
-                    disabled={selectedIds.includes(r.id)||selectedIds.length>=3}
-                    className={`flex items-center gap-2 p-2 rounded-xl text-sm transition-all ${selectedIds.includes(r.id)?"bg-green-500/20 text-green-400":"bg-white/5 hover:bg-white/10 text-white/70"}`}>
+
+            {results.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                {results.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => { if (picked.length < 3 && !picked.includes(r.id)) setPicked([...picked, r.id]); }}
+                    disabled={picked.includes(r.id) || picked.length >= 3}
+                    className={`flex items-center gap-2 p-2 rounded-lg text-sm transition-all ${
+                      picked.includes(r.id)
+                        ? "bg-green-500/15 text-green-400"
+                        : "bg-white/5 hover:bg-white/10 text-white/60"
+                    }`}
+                  >
                     <img src={getPokemonImageUrl(r.id)} alt="" className="w-8 h-8" />
                     <span className="capitalize truncate">{formatName(r.name)}</span>
-                    <span className="text-white/25 text-xs ml-auto">#{r.id}</span>
                   </button>
                 ))}
               </div>
             )}
-            {selectedIds.length>0 && (
-              <div className="mb-4">
-                <p className="text-xs text-white/30 mb-2">Your Team ({selectedIds.length}/3)</p>
-                <div className="flex gap-3">
-                  {selectedIds.map(id=>(
-                    <div key={id} className="relative bg-white/5 rounded-xl p-3 text-center group">
-                      <button onClick={()=>setSelectedIds(selectedIds.filter(i=>i!==id))}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">{String.fromCodePoint(0xD7)}</button>
-                      <img src={getPokemonImageUrl(id)} alt="" className="w-16 h-16 mx-auto" />
-                      <p className="text-xs text-white/50 mt-1">#{id}</p>
-                    </div>
-                  ))}
-                </div>
+
+            {picked.length > 0 && (
+              <div className="flex gap-3 mb-4">
+                {picked.map(id => (
+                  <div key={id} className="relative bg-white/5 rounded-lg p-2 text-center group">
+                    <button
+                      onClick={() => setPicked(picked.filter(i => i !== id))}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[10px] text-white flex items-center justify-center opacity-60 group-hover:opacity-100"
+                    >
+                      x
+                    </button>
+                    <img src={getPokemonImageUrl(id)} alt="" className="w-14 h-14 mx-auto" />
+                  </div>
+                ))}
               </div>
             )}
-            <button onClick={startCustomBattle} disabled={!selectedIds.length}
-              className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-red-500/20">
-              Start Battle ({selectedIds.length}/3)
+
+            <button
+              onClick={customBattle}
+              disabled={!picked.length}
+              className="w-full py-3 rounded-lg font-bold bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+            >
+              Start Custom Battle ({picked.length}/3)
             </button>
           </div>
         </div>
@@ -630,54 +620,48 @@ export default function BattlePage() {
     );
   }
 
-  /* ===============================================================
-     LOADING
-     =============================================================== */
+  /* ================================================================
+     RENDER: LOADING
+     ================================================================ */
   if (phase === "loading") {
     return (
-      <div className="min-h-screen bg-[#080810] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a1a] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="relative w-20 h-20 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-4 border-white/10" />
-            <div className="absolute inset-0 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-4 h-4 rounded-full bg-white/20" />
-            </div>
-          </div>
-          <p className="text-white/50 animate-pulse">{loadingMsg}</p>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-white/10 border-t-red-500 animate-spin" />
+          <p className="text-white/40 animate-pulse">{loadMsg}</p>
         </div>
       </div>
     );
   }
 
-  /* ===============================================================
-     SWITCHING
-     =============================================================== */
-  if (phase === "switching") {
+  /* ================================================================
+     RENDER: FORCED SWITCH
+     ================================================================ */
+  if (phase === "switch-forced") {
     return (
-      <div className="min-h-screen bg-[#080810] text-white pt-24 pb-12 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-2">Choose your next Pok{"\u00E9"}mon!</h2>
-          <p className="text-white/35 mb-8">Your active Pok{"\u00E9"}mon fainted.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {playerTeam.map((p, i) => (
-              <button key={i} onClick={()=>switchPokemon(i)} disabled={p.currentHp<=0||i===activePlayer}
-                className={`p-5 rounded-2xl border transition-all ${
-                  p.currentHp<=0?"border-red-500/20 bg-red-500/5 opacity-30 cursor-not-allowed"
-                  :i===activePlayer?"border-white/20 bg-white/5 opacity-30 cursor-not-allowed"
-                  :"border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/20 hover:scale-105 cursor-pointer"
-                }`}>
-                <img src={p.sprite} alt={p.name} className="w-24 h-24 mx-auto" style={p.currentHp<=0?{filter:"grayscale(1)",opacity:0.4}:{}} />
-                <p className="font-bold mt-2">{formatName(p.name)}</p>
-                <div className="flex gap-1 mt-1 justify-center">
-                  {p.types.map(t=><span key={t} className="text-[10px] px-2 py-0.5 rounded-full" style={{background:`${TC[t]}33`,color:TC[t]}}>{t}</span>)}
-                </div>
-                <div className="mt-2">
-                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{width:`${hpPct(p.currentHp,p.maxHp)}%`,background:hpCol(p.currentHp,p.maxHp)}} />
-                  </div>
-                  <p className="text-xs text-white/35 mt-1">{p.currentHp}/{p.maxHp} HP</p>
-                </div>
+      <div className="min-h-screen bg-[#0a0a1a] text-white pt-24 pb-12 px-4">
+        <div className="max-w-xl mx-auto text-center">
+          <h2 className="text-2xl font-bold mb-1">Send out your next Pokemon!</h2>
+          <p className="text-white/30 text-sm mb-8">Your active Pokemon fainted.</p>
+          <div className="grid grid-cols-3 gap-4">
+            {pTeam.map((p, i) => (
+              <button
+                key={i}
+                onClick={() => doSwitch(i, true)}
+                disabled={p.currentHp <= 0 || i === pIdx}
+                className={`p-4 rounded-xl border transition-all ${
+                  p.currentHp <= 0 ? "border-red-500/10 opacity-20 cursor-not-allowed"
+                  : i === pIdx ? "border-white/10 opacity-20 cursor-not-allowed"
+                  : "border-white/10 hover:border-white/25 hover:bg-white/5 cursor-pointer"
+                }`}
+              >
+                <img
+                  src={p.sprite} alt={p.name}
+                  className="w-20 h-20 mx-auto"
+                  style={p.currentHp <= 0 ? { filter: "grayscale(1)", opacity: .3 } : {}}
+                />
+                <p className="font-bold text-sm mt-2">{formatName(p.name)}</p>
+                <HPBar cur={p.currentHp} max={p.maxHp} />
               </button>
             ))}
           </div>
@@ -686,212 +670,216 @@ export default function BattlePage() {
     );
   }
 
-  /* ===============================================================
-     RESULT
-     =============================================================== */
+  /* ================================================================
+     RENDER: RESULT
+     ================================================================ */
   if (phase === "result") {
     return (
-      <div className="min-h-screen bg-[#080810] text-white pt-24 pb-12 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="text-8xl mb-4">{winner==="player"?String.fromCodePoint(0x1F3C6):String.fromCodePoint(0x1F480)}</div>
-          <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">
-            {winner==="player"?"Victory!":"Defeat..."}
+      <div className="min-h-screen bg-[#0a0a1a] text-white pt-24 pb-12 px-4">
+        <div className="max-w-lg mx-auto text-center">
+          <div className="text-6xl mb-4">{winner === "p" ? String.fromCodePoint(0x1F3C6) : String.fromCodePoint(0x1F614)}</div>
+          <h1 className="text-4xl font-extrabold mb-2">
+            {winner === "p" ? "Victory!" : "Defeat"}
           </h1>
-          <p className="text-white/40 mb-8">{winner==="player"?"Your team emerged victorious!":"Train harder and try again!"}</p>
+          <p className="text-white/30 mb-8">
+            {winner === "p" ? "Your team emerged victorious!" : "Better luck next time."}
+          </p>
+
+          {/* Team summaries */}
           <div className="grid grid-cols-2 gap-6 mb-8 text-left">
-            <div>
-              <p className="text-xs text-white/30 mb-3 uppercase tracking-wider">Your Team</p>
-              {playerTeam.map((p,i)=>(
-                <div key={i} className="flex items-center gap-2 mb-2">
-                  <img src={p.sprite} alt="" className="w-8 h-8" style={p.currentHp<=0?{filter:"grayscale(1)",opacity:0.3}:{}} />
-                  <span className={p.currentHp<=0?"text-white/25 line-through":""}>{formatName(p.name)}</span>
-                  <span className="text-xs text-white/25 ml-auto">{p.currentHp}/{p.maxHp}</span>
-                </div>
-              ))}
-            </div>
-            <div>
-              <p className="text-xs text-white/30 mb-3 uppercase tracking-wider">Opponent</p>
-              {aiTeam.map((p,i)=>(
-                <div key={i} className="flex items-center gap-2 mb-2">
-                  <img src={p.sprite} alt="" className="w-8 h-8" style={p.currentHp<=0?{filter:"grayscale(1)",opacity:0.3}:{}} />
-                  <span className={p.currentHp<=0?"text-white/25 line-through":""}>{formatName(p.name)}</span>
-                  <span className="text-xs text-white/25 ml-auto">{p.currentHp}/{p.maxHp}</span>
-                </div>
-              ))}
-            </div>
+            {[{ label: "Your Team", team: pTeam }, { label: "Opponent", team: aTeam }].map(({ label, team }) => (
+              <div key={label}>
+                <p className="text-[10px] text-white/25 uppercase tracking-wider mb-2">{label}</p>
+                {team.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-1.5">
+                    <img src={p.sprite} alt="" className="w-7 h-7" style={p.currentHp <= 0 ? { filter: "grayscale(1)", opacity: .3 } : {}} />
+                    <span className={`text-sm ${p.currentHp <= 0 ? "text-white/20 line-through" : ""}`}>{formatName(p.name)}</span>
+                    <span className="text-[10px] text-white/20 ml-auto font-mono">{Math.max(0, p.currentHp)}/{p.maxHp}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
+
           <div className="flex gap-3 justify-center">
-            <button onClick={()=>{setPhase("select");setWinner(null);setSelectedIds([]);setSearchResults([]);setSearchQuery("");}}
-              className="bg-gradient-to-r from-red-600 to-red-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-red-500/20">
+            <button
+              onClick={() => { setPhase("menu"); setWinner(null); setPicked([]); setResults([]); setQuery(""); }}
+              className="py-3 px-8 rounded-xl font-bold bg-gradient-to-r from-red-600 to-orange-500 shadow-lg shadow-red-900/30"
+            >
               Battle Again
             </button>
-            <Link href="/dex" className="bg-white/10 hover:bg-white/15 text-white font-bold py-3 px-8 rounded-xl transition-all">Back to Dex</Link>
+            <Link href="/dex" className="py-3 px-8 rounded-xl font-bold bg-white/10 hover:bg-white/15">
+              Back to Dex
+            </Link>
           </div>
         </div>
       </div>
     );
   }
 
-  /* ===============================================================
-     BATTLE SCREEN
-     =============================================================== */
-  const player = playerTeam[activePlayer];
-  const ai = aiTeam[activeAi];
+  /* ================================================================
+     RENDER: BATTLE SCREEN
+     ================================================================ */
+  const player = pTeam[pIdx];
+  const ai = aTeam[aIdx];
   if (!player || !ai) return null;
 
+  const pDots = pTeam.map((p, i) => ({ alive: p.currentHp > 0, active: i === pIdx }));
+  const aDots = aTeam.map((p, i) => ({ alive: p.currentHp > 0, active: i === aIdx }));
+
   return (
-    <div className="min-h-screen bg-[#080810] text-white pt-20 pb-4 px-4 flex flex-col">
-      {/* super-effective flash overlay */}
-      {superFlash && <div className="fixed inset-0 z-40 bg-yellow-300/20 pointer-events-none" style={{animation:"b-flash 0.15s ease-in-out 2"}} />}
+    <div className="min-h-screen bg-[#0a0a1a] text-white flex flex-col">
 
-      <div className={`max-w-4xl mx-auto w-full flex-1 flex flex-col ${screenShake?"anim-shake-screen":""}`}>
+      {/* === TOP: Battlefield === */}
+      <div className="flex-1 relative overflow-hidden" style={{ minHeight: 340 }}>
 
-        {/* -- BATTLEFIELD ------------------------------------ */}
-        <div className="relative rounded-2xl overflow-hidden mb-3" style={{background:"linear-gradient(180deg, #1a1a3e 0%, #0f2027 40%, #203a2e 60%, #2d4a1e 100%)", minHeight:320}}>
+        {/* Sky + ground background */}
+        <div className="absolute inset-0" style={{
+          background: "linear-gradient(180deg, #0f1729 0%, #162033 35%, #1a3a25 55%, #254a1d 80%, #1e3a18 100%)",
+        }} />
 
-          {/* ground ellipse */}
-          <div className="absolute bottom-0 left-0 right-0 h-[45%]" style={{background:"linear-gradient(180deg, transparent 0%, rgba(34,60,20,0.3) 100%)"}} />
+        {/* Subtle grass texture overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-[50%] opacity-20" style={{
+          background: "repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,.03) 2px, rgba(255,255,255,.03) 4px)",
+        }} />
 
-          {/* -- Opponent (top-right) -- */}
-          <div className="absolute top-4 right-4 left-[55%]">
-            {/* name plate */}
-            <div className="bg-[#111827]/80 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold">{formatName(ai.name)}</span>
-                <div className="flex gap-1">
-                  {aiTeam.map((p,i) => <div key={i} className={`w-2.5 h-2.5 rounded-full ${p.currentHp<=0?"bg-red-500/50":i===activeAi?"bg-green-400":"bg-white/20"}`} />)}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 mb-1.5">
-                {ai.types.map(t=><span key={t} className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase" style={{background:`${TC[t]}33`,color:TC[t]}}>{t}</span>)}
-                {ai.status && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-500/30 text-purple-300 uppercase ml-1">{ai.status.slice(0,3)}</span>}
-              </div>
-              {/* HP bar */}
-              <div className="relative h-3 bg-black/40 rounded-full overflow-hidden">
-                <div className="absolute inset-0 rounded-full transition-all duration-700 ease-out" style={{width:`${hpPct(displayAiHp,ai.maxHp)}%`,background:`linear-gradient(90deg, ${hpCol(displayAiHp,ai.maxHp)}, ${hpCol(displayAiHp,ai.maxHp)}dd)`}} />
-              </div>
-              <p className="text-[10px] text-white/30 mt-1 text-right">{displayAiHp}/{ai.maxHp}</p>
-            </div>
-          </div>
-
-          {/* AI sprite */}
-          <div className="absolute top-16 right-[15%]" style={{zIndex:10}}>
-            <img src={ai.sprite} alt={ai.name}
-              className={`w-40 h-40 drop-shadow-2xl ${spriteClass(aiAnim, false)}`}
-              style={{filter: aiAnim === "faint" ? "grayscale(0.8)" : "drop-shadow(0 4px 20px rgba(0,0,0,0.5))"}} />
-            {/* shadow */}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-black/20 rounded-full blur-sm" />
-          </div>
-
-          {/* -- Player (bottom-left) -- */}
-          <div className="absolute bottom-4 left-4 right-[55%]">
-            {/* name plate */}
-            <div className="bg-[#111827]/80 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold">{formatName(player.name)}</span>
-                <div className="flex gap-1">
-                  {playerTeam.map((p,i) => <div key={i} className={`w-2.5 h-2.5 rounded-full ${p.currentHp<=0?"bg-red-500/50":i===activePlayer?"bg-green-400":"bg-white/20"}`} />)}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 mb-1.5">
-                {player.types.map(t=><span key={t} className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase" style={{background:`${TC[t]}33`,color:TC[t]}}>{t}</span>)}
-                {player.status && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-500/30 text-purple-300 uppercase ml-1">{player.status.slice(0,3)}</span>}
-              </div>
-              {/* HP bar */}
-              <div className="relative h-3 bg-black/40 rounded-full overflow-hidden">
-                <div className="absolute inset-0 rounded-full transition-all duration-700 ease-out" style={{width:`${hpPct(displayPlayerHp,player.maxHp)}%`,background:`linear-gradient(90deg, ${hpCol(displayPlayerHp,player.maxHp)}, ${hpCol(displayPlayerHp,player.maxHp)}dd)`}} />
-              </div>
-              <div className="flex justify-between mt-1">
-                <p className="text-[10px] text-white/30">{displayPlayerHp}/{player.maxHp}</p>
-                <p className="text-[10px] text-white/20">Lv.50</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Player sprite */}
-          <div className="absolute bottom-20 left-[10%]" style={{zIndex:10}}>
-            <img src={player.sprite} alt={player.name}
-              className={`w-44 h-44 drop-shadow-2xl ${spriteClass(playerAnim, true)}`}
-              style={{filter: playerAnim === "faint" ? "grayscale(0.8)" : "drop-shadow(0 4px 20px rgba(0,0,0,0.5))"}} />
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-black/20 rounded-full blur-sm" />
-          </div>
+        {/* --- Opponent side (top-right) --- */}
+        <div className="absolute top-6 right-6 z-10">
+          <Nameplate pokemon={ai} displayHp={daHp} isPlayer={false} teamDots={aDots} />
+        </div>
+        <div className="absolute top-20 right-[12%] z-[5]">
+          <img
+            src={ai.sprite} alt={ai.name}
+            className={`w-36 h-36 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClass(aAnim, false)}`}
+            style={aAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
+          />
+          {/* Ground shadow */}
+          <div className="mx-auto mt-[-4px] w-20 h-3 rounded-[50%] bg-black/20 blur-[3px]" />
         </div>
 
-        {/* -- MESSAGE BOX ------------------------------------ */}
-        <div className="bg-[#111827] border-2 border-white/10 rounded-xl p-4 mb-3 min-h-[56px] relative">
-          <p className="text-white/90 text-lg font-medium">
-            {currentMessage && <TypewriterText text={currentMessage} speed={22} />}
-          </p>
-          {/* toggle log */}
-          <button onClick={()=>setShowLog(!showLog)} className="absolute top-2 right-3 text-[10px] text-white/20 hover:text-white/40 transition-all">
-            {showLog?"Hide":"Log"} {String.fromCodePoint(0x25BE)}
+        {/* --- Player side (bottom-left) --- */}
+        <div className="absolute bottom-6 left-6 z-10">
+          <Nameplate pokemon={player} displayHp={dpHp} isPlayer={true} teamDots={pDots} />
+        </div>
+        <div className="absolute bottom-16 left-[8%] z-[5]">
+          <img
+            src={player.sprite} alt={player.name}
+            className={`w-44 h-44 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClass(pAnim, true)}`}
+            style={pAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
+          />
+          <div className="mx-auto mt-[-4px] w-24 h-3 rounded-[50%] bg-black/20 blur-[3px]" />
+        </div>
+
+        {/* Turn counter */}
+        <div className="absolute top-3 left-3 text-[10px] text-white/15 font-mono z-10">
+          Turn {turn}
+        </div>
+      </div>
+
+      {/* === BOTTOM: Controls panel === */}
+      <div className="bg-[#0f1219] border-t border-white/5">
+
+        {/* Message box - game-style bordered text area */}
+        <div className="border-b border-white/5 px-5 py-3 min-h-[48px] flex items-center justify-between">
+          <p className="text-[15px] text-white/80 font-medium flex-1">{msg}</p>
+          <button
+            onClick={() => setShowLog(!showLog)}
+            className="text-[10px] text-white/20 hover:text-white/40 ml-3 flex-shrink-0"
+          >
+            {showLog ? "Hide" : "Log"}
           </button>
-          {showLog && (
-            <div ref={logRef} className="mt-2 max-h-28 overflow-y-auto border-t border-white/5 pt-2 space-y-0.5">
-              {battleLog.map((m,i) => <p key={i} className={`text-xs ${m.includes("super effective")||m.includes("critical")?"text-yellow-400":m.includes("fainted")?"text-red-400":m.includes("win")?"text-green-400":"text-white/30"}`}>{m}</p>)}
-            </div>
-          )}
         </div>
 
-        {/* -- CONTROLS --------------------------------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {/* Moves (3/5 width) */}
-          <div className="md:col-span-3">
-            {showMoves && !winner ? (
+        {/* Battle log (collapsible) */}
+        {showLog && (
+          <div ref={logRef} className="max-h-24 overflow-y-auto px-5 py-2 border-b border-white/5 space-y-0.5">
+            {log.map((m, i) => (
+              <p key={i} className={`text-[11px] ${
+                m.includes("super effective") || m.includes("critical") ? "text-yellow-400"
+                : m.includes("fainted") ? "text-red-400"
+                : m.includes("won") ? "text-green-400"
+                : "text-white/25"
+              }`}>
+                {m}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Move buttons + team panel */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+
+          {/* Moves - 2 columns on left (2/3 width) */}
+          <div className="md:col-span-2 p-3">
+            {!busy && !winner ? (
               <div className="grid grid-cols-2 gap-2">
-                {player.moves.map((m,i) => (
-                  <button key={i} onClick={()=>executeTurn(i)} disabled={isAnimating||m.pp<=0||!!winner}
-                    className="p-3 rounded-xl text-left transition-all hover:scale-[1.03] hover:brightness-110 disabled:opacity-25 disabled:cursor-not-allowed active:scale-95"
-                    style={{background:`${TC[m.type]||"#666"}22`,border:`1px solid ${TC[m.type]||"#666"}44`}}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm">{formatName(m.name)}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase" style={{background:`${TC[m.type]}44`,color:TC[m.type]}}>{m.type}</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-white/35">
-                      {m.power&&<span>PWR {m.power}</span>}
-                      {m.accuracy&&<span>ACC {m.accuracy}</span>}
-                      <span className="ml-auto">{m.pp}/{m.maxPp} PP</span>
-                    </div>
-                    <div className="text-[9px] text-white/20 mt-0.5 uppercase">{m.damageClass}</div>
-                  </button>
-                ))}
+                {player.moves.map((m, i) => {
+                  const clr = TYPE_CLR[m.type] || "#666";
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => doTurn(i)}
+                      disabled={m.pp <= 0}
+                      className="relative p-3 rounded-lg text-left transition-all hover:brightness-125 active:scale-[.97] disabled:opacity-20 disabled:cursor-not-allowed overflow-hidden"
+                      style={{ background: `${clr}18`, border: `1px solid ${clr}33` }}
+                    >
+                      {/* Type color accent bar */}
+                      <div className="absolute top-0 left-0 w-1 h-full rounded-l" style={{ background: clr }} />
+                      <div className="flex items-center justify-between mb-1 pl-2">
+                        <span className="font-bold text-sm text-white/90">{formatName(m.name)}</span>
+                        <TypeBadge type={m.type} />
+                      </div>
+                      <div className="flex items-center gap-3 pl-2 text-[10px] text-white/30 font-mono">
+                        {m.power && <span>PWR {m.power}</span>}
+                        {m.accuracy && <span>ACC {m.accuracy}</span>}
+                        <span className="ml-auto">{m.pp}/{m.maxPp}</span>
+                        <span className="uppercase text-white/15">{m.damageClass.slice(0, 4)}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-white/15 text-sm">
-                {winner ? "Battle ended" : "Waiting..."}
+              <div className="h-full flex items-center justify-center text-white/15 text-sm py-6">
+                {winner ? "Battle over" : "Waiting..."}
               </div>
             )}
           </div>
 
-          {/* Team panel (2/5 width) */}
-          <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded-xl p-3">
-            <p className="text-[10px] text-white/25 mb-2 uppercase tracking-wider">Team {String.fromCodePoint(0x2014)} click to switch</p>
-            <div className="space-y-1.5">
-              {playerTeam.map((p,i) => (
-                <button key={i} onClick={()=>i!==activePlayer&&p.currentHp>0&&voluntarySwitch(i)}
-                  disabled={i===activePlayer||p.currentHp<=0||isAnimating||!!winner}
-                  className={`w-full flex items-center gap-2.5 p-2 rounded-lg transition-all ${
-                    i===activePlayer?"bg-white/10 ring-1 ring-white/15"
-                    :p.currentHp<=0?"bg-red-500/5 opacity-30 cursor-not-allowed"
-                    :"bg-white/[0.02] hover:bg-white/[0.06] cursor-pointer"
-                  }`}>
-                  <img src={p.sprite} alt="" className="w-9 h-9" style={p.currentHp<=0?{filter:"grayscale(1)"}:{}} />
+          {/* Team panel - right 1/3 */}
+          <div className="border-l border-white/5 p-3">
+            <p className="text-[9px] text-white/20 uppercase tracking-wider mb-2 font-bold">Team</p>
+            <div className="space-y-1">
+              {pTeam.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => !busy && !winner && i !== pIdx && p.currentHp > 0 && doSwitch(i, false)}
+                  disabled={i === pIdx || p.currentHp <= 0 || busy || !!winner}
+                  className={`w-full flex items-center gap-2 p-1.5 rounded-lg transition-all text-left ${
+                    i === pIdx ? "bg-white/8 ring-1 ring-white/10"
+                    : p.currentHp <= 0 ? "opacity-20 cursor-not-allowed"
+                    : "hover:bg-white/5 cursor-pointer"
+                  }`}
+                >
+                  <img src={p.sprite} alt="" className="w-8 h-8" style={p.currentHp <= 0 ? { filter: "grayscale(1)" } : {}} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-medium truncate">{formatName(p.name)}</span>
-                      {i===activePlayer&&<span className="text-[8px] text-green-400 flex-shrink-0">{String.fromCodePoint(0x25CF)}</span>}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-medium truncate">{formatName(p.name)}</span>
+                      {i === pIdx && <div className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />}
                     </div>
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-0.5">
-                      <div className="h-full rounded-full transition-all duration-300" style={{width:`${hpPct(p.currentHp,p.maxHp)}%`,background:hpCol(p.currentHp,p.maxHp)}} />
+                    <div className="h-1 bg-white/10 rounded-full overflow-hidden mt-0.5">
+                      <div className="h-full rounded-full" style={{ width: `${hpPct(p.currentHp, p.maxHp)}%`, background: hpColor(p.currentHp / p.maxHp) }} />
                     </div>
                   </div>
-                  <span className="text-[10px] text-white/25 flex-shrink-0">{p.currentHp}/{p.maxHp}</span>
+                  <span className="text-[9px] text-white/20 font-mono flex-shrink-0">{Math.max(0, p.currentHp)}/{p.maxHp}</span>
                 </button>
               ))}
             </div>
-            <button onClick={()=>{setPhase("select");setWinner(null);}}
-              className="mt-2 w-full text-center text-[10px] text-white/20 hover:text-white/40 py-1.5 transition-all">
-              {String.fromCodePoint(0x1F3F3, 0xFE0F)} Forfeit
+            <button
+              onClick={() => { setPhase("menu"); setWinner(null); }}
+              className="mt-2 w-full text-center text-[10px] text-white/15 hover:text-red-400/60 py-1 transition-all"
+            >
+              Forfeit
             </button>
           </div>
         </div>
