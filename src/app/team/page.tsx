@@ -52,37 +52,10 @@ export default function TeamBuilderPage() {
     }
     const q = search.toLowerCase();
     const matches = allNames
-      .filter(
-        (p) => p.name.includes(q) || String(p.id).startsWith(q)
-      )
+      .filter((p) => p.name.includes(q) || String(p.id).startsWith(q))
       .slice(0, 8);
     setResults(matches);
   }, [search, allNames]);
-
-  const addPokemon = async (id: number) => {
-    if (activeSlot === null) return;
-    setLoadingSlot(activeSlot);
-    try {
-      const poke = await fetchPokemon(id);
-      const newTeam = [...team];
-      newTeam[activeSlot] = poke;
-      setTeam(newTeam);
-      await analyseTeam(newTeam);
-    } finally {
-      setLoadingSlot(null);
-      setSearch("");
-      setResults([]);
-      setActiveSlot(null);
-    }
-  };
-
-  const removeFromTeam = async (slot: number) => {
-    const newTeam = [...team];
-    newTeam[slot] = null;
-    setTeam(newTeam);
-    await analyseTeam(newTeam);
-    if (activeSlot === slot) setActiveSlot(null);
-  };
 
   const analyseTeam = async (currentTeam: Slot[]) => {
     const active = currentTeam.filter(Boolean) as Pokemon[];
@@ -142,14 +115,38 @@ export default function TeamBuilderPage() {
     }
   };
 
+  const addPokemon = async (id: number) => {
+    if (activeSlot === null) return;
+    setLoadingSlot(activeSlot);
+    try {
+      const poke = await fetchPokemon(id);
+      const newTeam = [...team];
+      newTeam[activeSlot] = poke;
+      setTeam(newTeam);
+      await analyseTeam(newTeam);
+    } finally {
+      setLoadingSlot(null);
+      setSearch("");
+      setResults([]);
+      setActiveSlot(null);
+    }
+  };
+
+  const removeFromTeam = async (slot: number) => {
+    const newTeam = [...team];
+    newTeam[slot] = null;
+    setTeam(newTeam);
+    await analyseTeam(newTeam);
+    if (activeSlot === slot) setActiveSlot(null);
+  };
+
   const teamSize = team.filter(Boolean).length;
   const coveredTypes = ALL_TYPES.filter((t) => (coverage[t] || 0) >= 2);
-  const uncoveredTypes = ALL_TYPES.filter((t) => (coverage[t] || 0) < 2);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-1">⚔️ Team Builder</h1>
+        <h1 className="text-3xl font-bold text-white mb-1">Team Builder</h1>
         <p className="text-white/30 text-sm">
           Build your team of 6 and analyse type coverage
         </p>
@@ -175,20 +172,9 @@ export default function TeamBuilderPage() {
                     setTimeout(() => searchRef.current?.focus(), 50);
                   }
                 }}
-                style={
-                  slot
-                    ? {
-                        boxShadow:
-                          activeSlot === i
-                            ? `0 0 20px ${typeColors[slot.types[0]?.type.name] || "#fff"}25`
-                            : undefined,
-                      }
-                    : undefined
-                }
               >
                 {slot ? (
                   <div className="relative p-4">
-                    {/* Type gradient */}
                     <div
                       className="absolute inset-0 pointer-events-none opacity-[0.07]"
                       style={{
@@ -197,7 +183,6 @@ export default function TeamBuilderPage() {
                         }, transparent 70%)`,
                       }}
                     />
-                    {/* Remove button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -207,7 +192,6 @@ export default function TeamBuilderPage() {
                     >
                       ✕
                     </button>
-
                     <div className="flex justify-center mb-2 relative z-10">
                       <div className="w-16 h-16">
                         <img
@@ -225,8 +209,6 @@ export default function TeamBuilderPage() {
                         <TypeBadge key={type.name} type={type.name} size="sm" />
                       ))}
                     </div>
-
-                    {/* Edit overlay */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -240,24 +222,9 @@ export default function TeamBuilderPage() {
                   </div>
                 ) : loadingSlot === i ? (
                   <div className="p-4 flex flex-col items-center justify-center h-32">
-                    <svg
-                      className="animate-spin w-5 h-5 text-white/30"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
+                    <svg className="animate-spin w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                   </div>
                 ) : (
@@ -265,9 +232,7 @@ export default function TeamBuilderPage() {
                     <div className="text-3xl mb-2 opacity-30">+</div>
                     <p className="text-xs">Slot {i + 1}</p>
                     {activeSlot === i && (
-                      <p className="text-[10px] text-[#dc2626]/70 mt-1">
-                        Search below ↓
-                      </p>
+                      <p className="text-[10px] text-[#dc2626]/70 mt-1">Search below</p>
                     )}
                   </div>
                 )}
@@ -281,7 +246,7 @@ export default function TeamBuilderPage() {
               <input
                 ref={searchRef}
                 type="text"
-                placeholder={`Search Pokémon for Slot ${activeSlot + 1}…`}
+                placeholder={`Search Pokmon for Slot ${activeSlot + 1}`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full px-4 py-3.5 bg-[#111120] border border-[#dc2626]/30 rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:border-[#dc2626]/50 text-sm"
@@ -313,7 +278,7 @@ export default function TeamBuilderPage() {
           )}
           {activeSlot === null && teamSize < 6 && (
             <p className="text-xs text-white/25 text-center">
-              Click an empty slot to add a Pokémon
+              Click an empty slot to add a Pokmon
             </p>
           )}
         </div>
@@ -322,12 +287,10 @@ export default function TeamBuilderPage() {
         <div className="space-y-4">
           {/* Summary */}
           <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
-            <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-3">
-              Team
-            </h3>
+            <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-3">Team</h3>
             <div className="flex items-end gap-2">
               <span className="text-4xl font-black text-white">{teamSize}</span>
-              <span className="text-white/30 mb-1">/ 6 Pokémon</span>
+              <span className="text-white/30 mb-1">/ 6 Pokmon</span>
             </div>
             <div className="w-full h-1.5 bg-white/5 rounded-full mt-3 overflow-hidden">
               <div
@@ -345,24 +308,9 @@ export default function TeamBuilderPage() {
                   Offensive Coverage
                 </h3>
                 {loadingAnalysis && (
-                  <svg
-                    className="animate-spin w-4 h-4 text-white/30"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
+                  <svg className="animate-spin w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 )}
               </div>
@@ -374,7 +322,7 @@ export default function TeamBuilderPage() {
                   return (
                     <div
                       key={type}
-                      className="relative flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase"
+                      className="flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase"
                       style={{
                         backgroundColor: covered ? `${c}18` : "rgba(255,255,255,0.02)",
                         border: `1px solid ${covered ? c + "35" : "rgba(255,255,255,0.05)"}`,
@@ -382,11 +330,7 @@ export default function TeamBuilderPage() {
                       }}
                     >
                       <span>{type}</span>
-                      {covered && (
-                        <span style={{ color: c }}>
-                          {eff >= 4 ? "4×" : "2×"}
-                        </span>
-                      )}
+                      {covered && <span style={{ color: c }}>{eff >= 4 ? "4" : "2"}</span>}
                     </div>
                   );
                 })}
@@ -416,16 +360,10 @@ export default function TeamBuilderPage() {
                         <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: c,
-                            }}
+                            style={{ width: `${pct}%`, backgroundColor: c }}
                           />
                         </div>
-                        <span
-                          className="text-xs font-bold w-4 text-right"
-                          style={{ color: c }}
-                        >
+                        <span className="text-xs font-bold w-4 text-right" style={{ color: c }}>
                           {count}
                         </span>
                       </div>
@@ -433,16 +371,14 @@ export default function TeamBuilderPage() {
                   })}
               </div>
               <p className="text-[11px] text-white/25 mt-3">
-                Number shows how many team members are weak to that type
+                Number = how many team members are weak to that type
               </p>
             </div>
           )}
 
           {teamSize === 0 && (
             <div className="rounded-2xl border border-dashed border-white/5 p-8 text-center">
-              <p className="text-white/20 text-sm">
-                Add Pokémon to see analysis
-              </p>
+              <p className="text-white/20 text-sm">Add Pokmon to see analysis</p>
             </div>
           )}
         </div>
