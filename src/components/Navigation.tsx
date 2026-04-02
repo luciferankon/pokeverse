@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/dex", label: "PokéDex", icon: "📖", color: "#EAB308" },
-  { href: "/team", label: "Team Builder", icon: "⚔️", color: "#22C55E" },
-  { href: "/whos-that", label: "Who's That?", icon: "❓", color: "#EC4899" },
-  { href: "/compare", label: "Compare", icon: "⚖️", color: "#818CF8" },
-  { href: "/favourites", label: "Favourites", icon: "⭐", color: "#EAB308" },
+  { href: "/dex", label: "Pok\u00e9Dex", icon: "\ud83d\udcd6", color: "#EAB308" },
+  { href: "/team", label: "Team Builder", icon: "\u2694\ufe0f", color: "#22C55E" },
+  { href: "/whos-that", label: "Who's That?", icon: "\u2753", color: "#EC4899" },
+  { href: "/compare", label: "Compare", icon: "\u2696\ufe0f", color: "#818CF8" },
+  { href: "/items", label: "Items", icon: "\ud83c\udf92", color: "#F97316" },
+  { href: "/favourites", label: "Favourites", icon: "\u2b50", color: "#EAB308" },
 ];
 
 export default function Navigation() {
@@ -30,13 +31,13 @@ export default function Navigation() {
               </div>
             </div>
             <span className="text-xl font-bold">
-              Poké<span className="text-[#dc2626]">Verse</span>
+              Pok\u00e9<span className="text-[#dc2626]">Verse</span>
             </span>
           </Link>
 
           {/* Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            {navItems.map(({ href, label, icon, color }) => {
+            {navItems.map(({ href, label, icon }) => {
               const active = pathname?.startsWith(href);
               return (
                 <Link
