@@ -595,7 +595,7 @@ export default function BattlePage() {
             {searchResults.length>0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                 {searchResults.map(r=>(
-                  <button key={r.id} onClick={()=>{if(selectedIds.length<3&&!selectedIds.includes(r.id))setSelectedIds([...selectedIds,r.id]);;}}
+                  <button key={r.id} onClick={()=>{if(selectedIds.length<3&&!selectedIds.includes(r.id))setSelectedIds([...selectedIds,r.id]);}}
                     disabled={selectedIds.includes(r.id)||selectedIds.length>=3}
                     className={`flex items-center gap-2 p-2 rounded-xl text-sm transition-all ${selectedIds.includes(r.id)?"bg-green-500/20 text-green-400":"bg-white/5 hover:bg-white/10 text-white/70"}`}>
                     <img src={getPokemonImageUrl(r.id)} alt="" className="w-8 h-8" />
@@ -875,7 +875,7 @@ export default function BattlePage() {
                     :p.currentHp<=0?"bg-red-500/5 opacity-30 cursor-not-allowed"
                     :"bg-white/[0.02] hover:bg-white/[0.06] cursor-pointer"
                   }`}>
-                  <img src={p.sprite} alt="" className="w-9 h-9" style={p.currentHp<=0?{filter:"grayscale(1)"}​:{}} />
+                  <img src={p.sprite} alt="" className="w-9 h-9" style={p.currentHp<=0?{filter:"grayscale(1)"}:{}} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-medium truncate">{formatName(p.name)}</span>
