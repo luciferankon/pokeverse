@@ -251,31 +251,30 @@ function Nameplate({
 }) {
   return (
     <div className={`
-      relative px-4 py-2.5 rounded-xl
-      bg-gradient-to-b from-[#1e293b] to-[#0f172a]
+      relative px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl
+      bg-gradient-to-b from-[#1e293b]/95 to-[#0f172a]/95 backdrop-blur-sm
       border border-white/10 shadow-lg shadow-black/30
-      ${isPlayer ? "min-w-[160px] sm:min-w-[240px]" : "min-w-[150px] sm:min-w-[220px]"}
+      ${isPlayer ? "min-w-[140px] sm:min-w-[200px]" : "min-w-[130px] sm:min-w-[190px]"}
     `}>
-      <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-        <span className="font-bold text-[13px] sm:text-[15px] text-white tracking-wide truncate">
+      <div className="flex items-center justify-between mb-0.5">
+        <span className="font-bold text-[11px] sm:text-[13px] text-white tracking-wide truncate">
           {formatName(pokemon.name)}
         </span>
-        <span className="text-[9px] sm:text-[10px] text-white/30 font-mono ml-1 flex-shrink-0">Lv50</span>
+        <span className="text-[8px] sm:text-[9px] text-white/30 font-mono ml-1 flex-shrink-0">Lv50</span>
       </div>
 
-      <div className="flex items-center gap-1 mb-1 sm:mb-2 flex-wrap">
+      <div className="flex items-center gap-0.5 sm:gap-1 mb-1 flex-wrap">
         {pokemon.types.map(t => <TypeBadge key={t} type={t} />)}
         <StatusBadge status={pokemon.status} />
       </div>
 
-      {/* Always show HP text on both sides */}
       <HPBar cur={displayHp} max={pokemon.maxHp} showText={true} />
 
-      <div className={`flex gap-1 mt-1.5 ${isPlayer ? "justify-end" : "justify-start"}`}>
+      <div className={`flex gap-1 mt-1 ${isPlayer ? "justify-end" : "justify-start"}`}>
         {teamDots.map((d, i) => (
           <div
             key={i}
-            className={`w-2 h-2 rounded-full transition-all ${
+            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
               d.active ? "bg-green-400 shadow-sm shadow-green-400/50"
               : d.alive ? "bg-white/25"
               : "bg-red-500/40"
@@ -899,7 +898,7 @@ export default function BattlePage() {
     <div className="h-screen bg-[#0a0a1a] text-white flex flex-col overflow-hidden">
 
       {/* === BATTLEFIELD - compact height, responsive === */}
-      <div className="relative overflow-hidden" style={{ height: "40vh", minHeight: 220, maxHeight: 400 }}>
+      <div className="relative overflow-hidden" style={{ height: "44vh", minHeight: 260, maxHeight: 440 }}>
 
         {/* Sky + ground gradient */}
         <div className="absolute inset-0" style={{
@@ -911,30 +910,34 @@ export default function BattlePage() {
           background: "repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,.03) 2px, rgba(255,255,255,.03) 4px)",
         }} />
 
-        {/* --- Opponent: nameplate TOP-LEFT, sprite TOP-RIGHT --- */}
-        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10">
-          <Nameplate pokemon={ai} displayHp={daHp} isPlayer={false} teamDots={aDots} />
-        </div>
-        <div className="absolute z-[5] top-[6%] sm:top-[8%] right-[4%] sm:right-[10%]">
-          <img
-            src={ai.sprite} alt={ai.name}
-            className={`w-32 h-32 sm:w-44 md:w-48 sm:h-44 md:h-48 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClass(aAnim, false)}`}
-            style={aAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
-          />
-          <div className="mx-auto mt-[-4px] w-16 sm:w-24 h-3 sm:h-4 rounded-[50%] bg-black/25 blur-[4px]" />
+        {/* --- Opponent (top-right): nameplate above sprite --- */}
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-[8%] z-10 flex flex-col items-center">
+          <div className="mb-1">
+            <Nameplate pokemon={ai} displayHp={daHp} isPlayer={false} teamDots={aDots} />
+          </div>
+          <div className={animClass(aAnim, false)}>
+            <img
+              src={ai.sprite} alt={ai.name}
+              className="w-24 h-24 sm:w-32 md:w-40 sm:h-32 md:h-40 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)]"
+              style={aAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
+            />
+          </div>
+          <div className="w-14 sm:w-20 h-2 sm:h-3 rounded-[50%] bg-black/25 blur-[3px] mt-[-2px]" />
         </div>
 
-        {/* --- Player: nameplate BOTTOM-RIGHT, sprite BOTTOM-LEFT (flipped to face right) --- */}
-        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-10">
-          <Nameplate pokemon={player} displayHp={dpHp} isPlayer={true} teamDots={pDots} />
-        </div>
-        <div className="absolute z-[5] bottom-[4%] sm:bottom-[6%] left-[2%] sm:left-[8%]" style={{ transform: "scaleX(-1)" }}>
-          <img
-            src={player.sprite} alt={player.name}
-            className={`w-36 h-36 sm:w-48 md:w-56 sm:h-48 md:h-56 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClass(pAnim, true)}`}
-            style={pAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
-          />
-          <div className="mx-auto mt-[-4px] w-20 sm:w-28 h-3 sm:h-4 rounded-[50%] bg-black/25 blur-[4px]" />
+        {/* --- Player (bottom-left): nameplate above sprite, sprite flipped --- */}
+        <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-[6%] z-10 flex flex-col items-center">
+          <div className="mb-1">
+            <Nameplate pokemon={player} displayHp={dpHp} isPlayer={true} teamDots={pDots} />
+          </div>
+          <div className={animClass(pAnim, true)} style={{ transform: "scaleX(-1)" }}>
+            <img
+              src={player.sprite} alt={player.name}
+              className="w-28 h-28 sm:w-36 md:w-44 sm:h-36 md:h-44 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)]"
+              style={pAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
+            />
+          </div>
+          <div className="w-16 sm:w-24 h-2 sm:h-3 rounded-[50%] bg-black/25 blur-[3px] mt-[-2px]" />
         </div>
 
         {/* Turn counter */}
