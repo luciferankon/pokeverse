@@ -7,14 +7,24 @@ import {
   fetchPokemon,
   fetchPokemonSpecies,
   fetchEvolutionChain,
+  fetchAbility,
   formatPokemonName,
   getPokemonImageUrl,
   calculateTypeMatchups,
 } from "@/lib/api";
-import { Pokemon, PokemonSpecies, EvolutionChain, TypeMatchups } from "@/lib/types";
+import {
+  Pokemon,
+  PokemonSpecies,
+  EvolutionChain,
+  TypeMatchups,
+  AbilityDetail,
+} from "@/lib/types";
 import TypeBadge from "@/components/TypeBadge";
 import StatBar from "@/components/StatBar";
 import EvolutionChainDisplay from "@/components/EvolutionChain";
+import PokemonForms from "@/components/PokemonForms";
+import PokemonMoves from "@/components/PokemonMoves";
+import PokemonItems from "@/components/PokemonItems";
 import { typeColors } from "@/lib/typeColors";
 import { useFavourites } from "@/hooks/useFavourites";
 
@@ -26,6 +36,8 @@ export default function PokemonDetailPage() {
   const [species, setSpecies] = useState<PokemonSpecies | null>(null);
   const [evo, setEvo] = useState<EvolutionChain | null>(null);
   const [matchups, setMatchups] = useState<TypeMatchups | null>(null);
+  const [abilityDetails, setAbilityDetails] = useState<Record<string, AbilityDetail>>({});
+  const [expandedAbility, setExpandedAbility] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [showShiny, setShowShiny] = useState(false);
@@ -39,6 +51,8 @@ export default function PokemonDetailPage() {
     setError(false);
     setImgError(false);
     setShowShiny(false);
+    setAbilityDetails({});
+    setExpandedAbility(null);
 
     const load = async () => {
       try {
@@ -54,6 +68,19 @@ export default function PokemonDetailPage() {
 
         const evoData = await fetchEvolutionChain(spec.evolution_chain.url);
         setEvo(evoData);
+
+        // Fetch ability details in background (non-blocking)
+        Promise.allSettled(
+          poke.abilities.map((a) => fetchAbility(a.ability.name))
+        ).then((results) => {
+          const details: Record<string, AbilityDetail> = {};
+          results.forEach((r, i) => {
+            if (r.status === "fulfilled") {
+              details[poke.abilities[i].ability.name] = r.value;
+            }
+          });
+          setAbilityDetails(details);
+        });
       } catch {
         setError(true);
       } finally {
@@ -82,8 +109,7 @@ export default function PokemonDetailPage() {
     species?.flavor_text_entries
       .find((e) => e.language.name === "en")
       ?.flavor_text.replace(/\f/g, " ") || "";
-  const genus =
-    species?.genera.find((g) => g.language.name === "en")?.genus || "";
+  const genus = species?.genera.find((g) => g.language.name === "en")?.genus || "";
   const totalStats = pokemon.stats.reduce((s, st) => s + st.base_stat, 0);
 
   const imageUrl = showShiny
@@ -93,6 +119,8 @@ export default function PokemonDetailPage() {
   const prevId = pokemon.id > 1 ? pokemon.id - 1 : null;
   const nextId = pokemon.id < 1025 ? pokemon.id + 1 : null;
   const fav = isFavourite(pokemon.id);
+
+  const hasAltForms = (species?.varieties ?? []).filter((v) => !v.is_default).length > 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -125,20 +153,22 @@ export default function PokemonDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Sprite + Basic Info */}
+        {/* ── Left column ── */}
         <div>
           {/* Hero card */}
           <div
-            className="rounded-2xl border border-white/5 bg-[#111120] overflow-hidden mb-5"
+            className="rounded-2xl border border-white/5 overflow-hidden mb-5"
             style={{ background: `linear-gradient(135deg, #111120, ${accentColor}18)` }}
           >
             <div className="relative p-8 flex flex-col items-center">
               <div
                 className="absolute inset-0 pointer-events-none"
-                style={{ background: `radial-gradient(circle at 70% 30%, ${accentColor}20, transparent 60%)` }}
+                style={{
+                  background: `radial-gradient(circle at 70% 30%, ${accentColor}20, transparent 60%)`,
+                }}
               />
 
-              {/* Number + badges */}
+              {/* Number + rarity badges */}
               <div className="flex items-center gap-3 mb-4 relative z-10">
                 <span className="text-xs font-mono text-white/25">
                   #{String(pokemon.id).padStart(4, "0")}
@@ -167,11 +197,13 @@ export default function PokemonDetailPage() {
                     style={showShiny ? { imageRendering: "pixelated" } : {}}
                   />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center text-6xl">?</div>
+                  <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center text-6xl">
+                    ?
+                  </div>
                 )}
               </div>
 
-              {/* Name */}
+              {/* Name + genus */}
               <h1 className="text-3xl font-black text-white mb-1 relative z-10">
                 {formatPokemonName(pokemon.name)}
               </h1>
@@ -232,43 +264,104 @@ export default function PokemonDetailPage() {
             {[
               { label: "Height", value: `${(pokemon.height / 10).toFixed(1)} m` },
               { label: "Weight", value: `${(pokemon.weight / 10).toFixed(1)} kg` },
-              { label: "Base XP", value: pokemon.base_experience?.toLocaleString() || "—" },
-              { label: "Generation", value: species?.generation.name.replace("generation-", "Gen ").toUpperCase() || "—" },
+              {
+                label: "Base XP",
+                value: pokemon.base_experience?.toLocaleString() || "—",
+              },
+              {
+                label: "Generation",
+                value:
+                  species?.generation.name
+                    .replace("generation-", "Gen ")
+                    .toUpperCase() || "—",
+              },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-xl border border-white/5 bg-[#111120] p-4">
-                <p className="text-[11px] text-white/30 uppercase tracking-wider mb-1">{label}</p>
+              <div
+                key={label}
+                className="rounded-xl border border-white/5 bg-[#111120] p-4"
+              >
+                <p className="text-[11px] text-white/30 uppercase tracking-wider mb-1">
+                  {label}
+                </p>
                 <p className="text-base font-bold text-white">{value}</p>
               </div>
             ))}
           </div>
 
-          {/* Abilities */}
+          {/* Abilities with expandable descriptions */}
           <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
-            <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">Abilities</h3>
-            <div className="flex flex-wrap gap-2">
-              {pokemon.abilities.map(({ ability, is_hidden }) => (
-                <span
-                  key={ability.name}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${
-                    is_hidden
-                      ? "bg-purple-500/10 text-purple-300 border border-purple-500/20"
-                      : "bg-white/5 text-white/60 border border-white/8"
-                  }`}
-                >
-                  {ability.name.replace(/-/g, " ")}
-                  {is_hidden && <span className="ml-1 text-purple-400/60">(hidden)</span>}
-                </span>
-              ))}
+            <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">
+              Abilities
+            </h3>
+            <div className="space-y-2">
+              {pokemon.abilities.map(({ ability, is_hidden }) => {
+                const detail = abilityDetails[ability.name];
+                const isExpanded = expandedAbility === ability.name;
+                const desc =
+                  detail?.effect_entries.find((e) => e.language.name === "en")
+                    ?.short_effect ||
+                  detail?.flavor_text_entries.find((e) => e.language.name === "en")
+                    ?.flavor_text ||
+                  "";
+                return (
+                  <div
+                    key={ability.name}
+                    className={`rounded-xl border overflow-hidden ${
+                      is_hidden ? "border-purple-500/20" : "border-white/8"
+                    }`}
+                  >
+                    <button
+                      className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors ${
+                        is_hidden
+                          ? "bg-purple-500/10 hover:bg-purple-500/15"
+                          : "bg-white/5 hover:bg-white/8"
+                      }`}
+                      onClick={() =>
+                        setExpandedAbility(isExpanded ? null : ability.name)
+                      }
+                    >
+                      <span
+                        className={`text-sm font-medium capitalize ${
+                          is_hidden ? "text-purple-300" : "text-white/70"
+                        }`}
+                      >
+                        {ability.name.replace(/-/g, " ")}
+                        {is_hidden && (
+                          <span className="ml-2 text-[10px] text-purple-400/60 font-normal">
+                            (Hidden Ability)
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-white/25 text-xs shrink-0 ml-2">
+                        {!detail ? "…" : isExpanded ? "▲" : "▼"}
+                      </span>
+                    </button>
+                    {isExpanded && desc && (
+                      <div
+                        className={`px-3 py-2.5 border-t text-xs leading-relaxed ${
+                          is_hidden
+                            ? "border-purple-500/10 bg-purple-500/5 text-purple-200/55"
+                            : "border-white/5 bg-white/[0.02] text-white/50"
+                        }`}
+                      >
+                        {desc}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Right: Stats + Matchups + Evolution */}
+        {/* ── Right column ── */}
         <div className="space-y-5">
           {/* Base Stats */}
           <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">Base Stats</h3>
+              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
+                Base Stats
+              </h3>
               <span className="text-sm font-bold text-white/60">
                 Total: <span className="text-white">{totalStats}</span>
               </span>
@@ -283,22 +376,44 @@ export default function PokemonDetailPage() {
           {/* Type Matchups */}
           {matchups && (
             <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
-              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">Type Matchups</h3>
+              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
+                Type Matchups
+              </h3>
               <div className="space-y-3">
                 {matchups.doubleWeaknesses.length > 0 && (
-                  <MatchupRow label="4×" types={matchups.doubleWeaknesses} color="#EF4444" />
+                  <MatchupRow
+                    label="4×"
+                    types={matchups.doubleWeaknesses}
+                    color="#EF4444"
+                  />
                 )}
                 {matchups.weaknesses.length > 0 && (
-                  <MatchupRow label="2×" types={matchups.weaknesses} color="#F97316" />
+                  <MatchupRow
+                    label="2×"
+                    types={matchups.weaknesses}
+                    color="#F97316"
+                  />
                 )}
                 {matchups.resistances.length > 0 && (
-                  <MatchupRow label="½×" types={matchups.resistances} color="#22C55E" />
+                  <MatchupRow
+                    label="½×"
+                    types={matchups.resistances}
+                    color="#22C55E"
+                  />
                 )}
                 {matchups.doubleResistances.length > 0 && (
-                  <MatchupRow label="¼×" types={matchups.doubleResistances} color="#3B82F6" />
+                  <MatchupRow
+                    label="¼×"
+                    types={matchups.doubleResistances}
+                    color="#3B82F6"
+                  />
                 )}
                 {matchups.immunities.length > 0 && (
-                  <MatchupRow label="0×" types={matchups.immunities} color="#7C3AED" />
+                  <MatchupRow
+                    label="0×"
+                    types={matchups.immunities}
+                    color="#7C3AED"
+                  />
                 )}
               </div>
             </div>
@@ -307,22 +422,57 @@ export default function PokemonDetailPage() {
           {/* Evolution Chain */}
           {evo && (
             <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
-              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">Evolution Chain</h3>
+              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
+                Evolution Chain
+              </h3>
               <EvolutionChainDisplay chain={evo.chain} />
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Below main grid: Forms / Items / Moves ── */}
+      <div className="mt-6 space-y-5">
+        {/* Alternate Forms (Mega, Primal, Gigantamax, Regional…) */}
+        {hasAltForms && species && (
+          <PokemonForms baseName={pokemon.name} varieties={species.varieties} />
+        )}
+
+        {/* Held Items + Berries */}
+        {pokemon.held_items && pokemon.held_items.length > 0 && (
+          <PokemonItems heldItems={pokemon.held_items} />
+        )}
+
+        {/* Learnable Moves (Level Up / TM / Egg / Tutor) */}
+        {pokemon.moves && pokemon.moves.length > 0 && (
+          <PokemonMoves moves={pokemon.moves} />
+        )}
+      </div>
     </div>
   );
 }
 
-function MatchupRow({ label, types, color }: { label: string; types: string[]; color: string }) {
+function MatchupRow({
+  label,
+  types,
+  color,
+}: {
+  label: string;
+  types: string[];
+  color: string;
+}) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs font-bold w-7 shrink-0 text-right" style={{ color }}>{label}</span>
+      <span
+        className="text-xs font-bold w-7 shrink-0 text-right"
+        style={{ color }}
+      >
+        {label}
+      </span>
       <div className="flex flex-wrap gap-1">
-        {types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+        {types.map((t) => (
+          <TypeBadge key={t} type={t} size="sm" />
+        ))}
       </div>
     </div>
   );
