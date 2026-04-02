@@ -274,16 +274,16 @@ function Nameplate({
       relative px-4 py-2.5 rounded-xl
       bg-gradient-to-b from-[#1e293b] to-[#0f172a]
       border border-white/10 shadow-lg shadow-black/30
-      ${isPlayer ? "min-w-[240px]" : "min-w-[220px]"}
+      ${isPlayer ? "min-w-[160px] sm:min-w-[240px]" : "min-w-[150px] sm:min-w-[220px]"}
     `}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-bold text-[15px] text-white tracking-wide">
+      <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+        <span className="font-bold text-[13px] sm:text-[15px] text-white tracking-wide truncate">
           {formatName(pokemon.name)}
         </span>
-        <span className="text-[10px] text-white/30 font-mono">Lv50</span>
+        <span className="text-[9px] sm:text-[10px] text-white/30 font-mono ml-1 flex-shrink-0">Lv50</span>
       </div>
 
-      <div className="flex items-center gap-1 mb-2">
+      <div className="flex items-center gap-1 mb-1 sm:mb-2 flex-wrap">
         {pokemon.types.map(t => <TypeBadge key={t} type={t} />)}
         <StatusBadge status={pokemon.status} />
       </div>
@@ -308,29 +308,30 @@ function Nameplate({
 }
 
 /* -- Move Detail Tooltip -- */
-function MoveTooltip({ move }: { move: BattleMove }) {
+function MoveTooltip({ move, onClose }: { move: BattleMove; onClose?: () => void }) {
   const clr = TYPE_CLR[move.type] || "#666";
   return (
     <div
-      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 p-3 rounded-xl shadow-xl pointer-events-none"
+      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 sm:w-56 p-2.5 sm:p-3 rounded-xl shadow-xl"
       style={{ background: "#1a1f2e", border: `1px solid ${clr}55` }}
+      onClick={(e) => { e.stopPropagation(); if (onClose) onClose(); }}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="font-bold text-sm text-white">{formatName(move.name)}</span>
+        <span className="font-bold text-xs sm:text-sm text-white truncate mr-1">{formatName(move.name)}</span>
         <TypeBadge type={move.type} />
       </div>
-      <div className="grid grid-cols-3 gap-2 text-center mb-2">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center mb-2">
         <div className="bg-white/5 rounded-md py-1">
-          <p className="text-[8px] text-white/30 uppercase">Power</p>
-          <p className="text-sm font-bold text-white/80">{move.power || "-"}</p>
+          <p className="text-[7px] sm:text-[8px] text-white/30 uppercase">Power</p>
+          <p className="text-xs sm:text-sm font-bold text-white/80">{move.power || "-"}</p>
         </div>
         <div className="bg-white/5 rounded-md py-1">
-          <p className="text-[8px] text-white/30 uppercase">Accuracy</p>
-          <p className="text-sm font-bold text-white/80">{move.accuracy || "-"}</p>
+          <p className="text-[7px] sm:text-[8px] text-white/30 uppercase">Acc</p>
+          <p className="text-xs sm:text-sm font-bold text-white/80">{move.accuracy || "-"}</p>
         </div>
         <div className="bg-white/5 rounded-md py-1">
-          <p className="text-[8px] text-white/30 uppercase">Class</p>
-          <p className="text-sm font-bold text-white/80">{DMG_CLASS_ICON[move.damageClass] || "?"}</p>
+          <p className="text-[7px] sm:text-[8px] text-white/30 uppercase">Class</p>
+          <p className="text-xs sm:text-sm font-bold text-white/80">{DMG_CLASS_ICON[move.damageClass] || "?"}</p>
         </div>
       </div>
       <div className="flex items-center justify-between text-[10px]">
@@ -367,6 +368,8 @@ export default function BattlePage() {
   const [showLog, setShowLog] = useState(false);
   const [panel, setPanel] = useState<BottomPanel>("fight");
   const [hoveredMove, setHoveredMove] = useState<number | null>(null);
+  const [tappedMove, setTappedMove] = useState<number | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bag, setBag] = useState<BattleItem[]>([]);
   const [bagTarget, setBagTarget] = useState<{ itemIdx: number } | null>(null);
   const [inspectIdx, setInspectIdx] = useState<number | null>(null);
@@ -704,15 +707,15 @@ export default function BattlePage() {
      ================================================================ */
   if (phase === "menu") {
     return (
-      <div className="min-h-screen bg-[#0a0a1a] text-white pt-24 pb-12 px-4">
+      <div className="min-h-screen bg-[#0a0a1a] text-white pt-16 sm:pt-24 pb-8 sm:pb-12 px-3 sm:px-4">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-extrabold mb-2">
+          <div className="text-center mb-6 sm:mb-10">
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">
               <span className="bg-gradient-to-r from-red-500 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
                 Battle Simulator
               </span>
             </h1>
-            <p className="text-white/30 text-sm">Gen V damage formulas | 18-type chart | 3v3 teams | AI difficulty</p>
+            <p className="text-white/30 text-xs sm:text-sm">Gen V damage formulas | 18-type chart | 3v3 teams | AI difficulty</p>
           </div>
 
           <div className="flex justify-center gap-2 mb-8">
@@ -825,17 +828,17 @@ export default function BattlePage() {
      ================================================================ */
   if (phase === "switch-forced") {
     return (
-      <div className="min-h-screen bg-[#0a0a1a] text-white pt-24 pb-12 px-4">
+      <div className="min-h-screen bg-[#0a0a1a] text-white pt-16 sm:pt-24 pb-8 sm:pb-12 px-3 sm:px-4">
         <div className="max-w-xl mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-1">Send out your next Pokemon!</h2>
-          <p className="text-white/30 text-sm mb-8">Your active Pokemon fainted.</p>
-          <div className="grid grid-cols-3 gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold mb-1">Send out your next Pokemon!</h2>
+          <p className="text-white/30 text-xs sm:text-sm mb-6 sm:mb-8">Your active Pokemon fainted.</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {pTeam.map((p, i) => (
               <button
                 key={i}
                 onClick={() => doSwitch(i, true)}
                 disabled={p.currentHp <= 0 || i === pIdx}
-                className={`p-4 rounded-xl border transition-all ${
+                className={`p-2 sm:p-4 rounded-xl border transition-all ${
                   p.currentHp <= 0 ? "border-red-500/10 opacity-20 cursor-not-allowed"
                   : i === pIdx ? "border-white/10 opacity-20 cursor-not-allowed"
                   : "border-white/10 hover:border-white/25 hover:bg-white/5 cursor-pointer"
@@ -843,7 +846,7 @@ export default function BattlePage() {
               >
                 <img
                   src={p.sprite} alt={p.name}
-                  className="w-20 h-20 mx-auto"
+                  className="w-14 h-14 sm:w-20 sm:h-20 mx-auto"
                   style={p.currentHp <= 0 ? { filter: "grayscale(1)", opacity: .3 } : {}}
                 />
                 <p className="font-bold text-sm mt-2">{formatName(p.name)}</p>
@@ -861,10 +864,10 @@ export default function BattlePage() {
      ================================================================ */
   if (phase === "result") {
     return (
-      <div className="min-h-screen bg-[#0a0a1a] text-white pt-24 pb-12 px-4">
+      <div className="min-h-screen bg-[#0a0a1a] text-white pt-16 sm:pt-24 pb-8 sm:pb-12 px-3 sm:px-4">
         <div className="max-w-lg mx-auto text-center">
-          <div className="text-6xl mb-4">{winner === "p" ? String.fromCodePoint(0x1F3C6) : String.fromCodePoint(0x1F614)}</div>
-          <h1 className="text-4xl font-extrabold mb-2">
+          <div className="text-5xl sm:text-6xl mb-3 sm:mb-4">{winner === "p" ? String.fromCodePoint(0x1F3C6) : String.fromCodePoint(0x1F614)}</div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">
             {winner === "p" ? "Victory!" : "Defeat"}
           </h1>
           <p className="text-white/30 mb-8">
@@ -915,8 +918,8 @@ export default function BattlePage() {
   return (
     <div className="h-screen bg-[#0a0a1a] text-white flex flex-col overflow-hidden">
 
-      {/* === BATTLEFIELD - compact height === */}
-      <div className="relative overflow-hidden" style={{ height: "46vh", minHeight: 280, maxHeight: 420 }}>
+      {/* === BATTLEFIELD - compact height, responsive === */}
+      <div className="relative overflow-hidden" style={{ height: "40vh", minHeight: 220, maxHeight: 400 }}>
 
         {/* Sky + ground gradient */}
         <div className="absolute inset-0" style={{
@@ -929,36 +932,35 @@ export default function BattlePage() {
         }} />
 
         {/* --- Opponent (top-right) --- */}
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10">
           <Nameplate pokemon={ai} displayHp={daHp} isPlayer={false} teamDots={aDots} />
         </div>
-        <div className="absolute z-[5]" style={{ top: "12%", right: "8%" }}>
+        <div className="absolute z-[5] top-[8%] sm:top-[12%] right-[2%] sm:right-[8%]">
           <img
             src={ai.sprite} alt={ai.name}
-            className={`w-48 h-48 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClassOpp(aAnim)}`}
+            className={`w-28 h-28 sm:w-40 md:w-48 sm:h-40 md:h-48 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClassOpp(aAnim)}`}
             style={aAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
           />
-          <div className="mx-auto mt-[-6px] w-24 h-4 rounded-[50%] bg-black/25 blur-[4px]" />
+          <div className="mx-auto mt-[-4px] w-16 sm:w-24 h-3 sm:h-4 rounded-[50%] bg-black/25 blur-[4px]" />
         </div>
 
         {/* --- Player (bottom-left) - sprite faces RIGHT (toward opponent) --- */}
-        <div className="absolute bottom-4 left-4 z-10">
+        <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-10">
           <Nameplate pokemon={player} displayHp={dpHp} isPlayer={true} teamDots={pDots} />
         </div>
-        <div className="absolute z-[5]" style={{ bottom: "8%", left: "5%" }}>
+        <div className="absolute z-[5] bottom-[4%] sm:bottom-[8%] left-[1%] sm:left-[5%]">
           <img
             src={player.sprite} alt={player.name}
-            className={`w-56 h-56 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClassPlayer(pAnim)}`}
+            className={`w-32 h-32 sm:w-44 md:w-56 sm:h-44 md:h-56 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClassPlayer(pAnim)}`}
             style={{
               ...(pAnim === "faint" ? { filter: "grayscale(.7)" } : {}),
-              ...(pAnim === "idle" ? {} : {}),
             }}
           />
-          <div className="mx-auto mt-[-6px] w-28 h-4 rounded-[50%] bg-black/25 blur-[4px]" />
+          <div className="mx-auto mt-[-4px] w-18 sm:w-28 h-3 sm:h-4 rounded-[50%] bg-black/25 blur-[4px]" />
         </div>
 
         {/* Turn counter */}
-        <div className="absolute top-3 left-3 text-xs text-white/25 font-mono z-10 bg-black/20 px-2 py-0.5 rounded">
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 text-[10px] sm:text-xs text-white/25 font-mono z-10 bg-black/20 px-1.5 sm:px-2 py-0.5 rounded">
           Turn {turn}
         </div>
       </div>
@@ -967,8 +969,8 @@ export default function BattlePage() {
       <div className="flex-1 bg-[#0f1219] border-t border-white/5 flex flex-col min-h-0">
 
         {/* Message box */}
-        <div className="border-b border-white/5 px-5 py-3 min-h-[48px] flex items-center justify-between flex-shrink-0">
-          <p className="text-[15px] text-white/80 font-medium flex-1">{msg}</p>
+        <div className="border-b border-white/5 px-3 sm:px-5 py-2 sm:py-3 min-h-[40px] sm:min-h-[48px] flex items-center justify-between flex-shrink-0">
+          <p className="text-[13px] sm:text-[15px] text-white/80 font-medium flex-1">{msg}</p>
           <button
             onClick={() => setShowLog(!showLog)}
             className="text-[10px] text-white/20 hover:text-white/40 ml-3 flex-shrink-0"
@@ -1011,36 +1013,49 @@ export default function BattlePage() {
         </div>
 
         {/* Panel content */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-3" style={{ WebkitOverflowScrolling: "touch" }}>
 
           {/* === FIGHT PANEL === */}
           {panel === "fight" && (
             <>
               {!busy && !winner ? (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                   {player.moves.map((m, i) => {
                     const clr = TYPE_CLR[m.type] || "#666";
+                    const showTip = hoveredMove === i || tappedMove === i;
                     return (
                       <div key={i} className="relative">
-                        {hoveredMove === i && <MoveTooltip move={m} />}
+                        {showTip && <MoveTooltip move={m} onClose={() => setTappedMove(null)} />}
                         <button
-                          onClick={() => doTurn(i)}
+                          onClick={() => {
+                            if (tappedMove === i) { setTappedMove(null); doTurn(i); }
+                            else { setTappedMove(null); doTurn(i); }
+                          }}
                           onMouseEnter={() => setHoveredMove(i)}
                           onMouseLeave={() => setHoveredMove(null)}
+                          onTouchStart={() => {
+                            longPressTimer.current = setTimeout(() => { setTappedMove(i); }, 400);
+                          }}
+                          onTouchEnd={() => {
+                            if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+                          }}
+                          onTouchMove={() => {
+                            if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+                          }}
                           disabled={m.pp <= 0}
-                          className="w-full relative p-3 rounded-lg text-left transition-all hover:brightness-125 active:scale-[.97] disabled:opacity-20 disabled:cursor-not-allowed overflow-hidden"
+                          className="w-full relative p-2 sm:p-3 rounded-lg text-left transition-all hover:brightness-125 active:scale-[.97] disabled:opacity-20 disabled:cursor-not-allowed overflow-hidden"
                           style={{ background: `${clr}18`, border: `1px solid ${clr}33` }}
                         >
                           <div className="absolute top-0 left-0 w-1 h-full rounded-l" style={{ background: clr }} />
-                          <div className="flex items-center justify-between mb-1 pl-2">
-                            <span className="font-bold text-sm text-white/90">{formatName(m.name)}</span>
+                          <div className="flex items-center justify-between mb-0.5 sm:mb-1 pl-1.5 sm:pl-2">
+                            <span className="font-bold text-xs sm:text-sm text-white/90 truncate mr-1">{formatName(m.name)}</span>
                             <TypeBadge type={m.type} />
                           </div>
-                          <div className="flex items-center gap-3 pl-2 text-[10px] text-white/30 font-mono">
+                          <div className="flex items-center gap-2 sm:gap-3 pl-1.5 sm:pl-2 text-[9px] sm:text-[10px] text-white/30 font-mono">
                             {m.power && <span>PWR {m.power}</span>}
                             {m.accuracy && <span>ACC {m.accuracy}</span>}
                             <span className="ml-auto">{m.pp}/{m.maxPp}</span>
-                            <span className="uppercase text-white/15">{m.damageClass.slice(0, 4)}</span>
+                            <span className="uppercase text-white/15 hidden sm:inline">{m.damageClass.slice(0, 4)}</span>
                           </div>
                         </button>
                       </div>
@@ -1107,14 +1122,14 @@ export default function BattlePage() {
                       key={item.id}
                       onClick={() => item.qty > 0 && !busy && !winner && setBagTarget({ itemIdx: i })}
                       disabled={item.qty <= 0 || busy || !!winner}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left ${
+                      className={`w-full flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg transition-all text-left ${
                         item.qty > 0 && !busy ? "bg-white/[.04] hover:bg-white/[.08] cursor-pointer" : "opacity-20 cursor-not-allowed"
                       }`}
                     >
-                      <span className="text-xl">{item.icon}</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-sm text-white/90">{item.name}</p>
-                        <p className="text-[11px] text-white/30">{item.desc}</p>
+                      <span className="text-lg sm:text-xl">{item.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-xs sm:text-sm text-white/90">{item.name}</p>
+                        <p className="text-[10px] sm:text-[11px] text-white/30 truncate sm:whitespace-normal">{item.desc}</p>
                       </div>
                       <span className="text-sm font-mono text-white/40">x{item.qty}</span>
                     </button>
@@ -1155,7 +1170,7 @@ export default function BattlePage() {
 
                         {/* Stats */}
                         <p className="text-[9px] text-white/20 uppercase tracking-wider mb-1.5 font-bold">Stats</p>
-                        <div className="grid grid-cols-3 gap-2 mb-4">
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
                           {(["attack", "defense", "spAtk", "spDef", "speed"] as const).map(stat => (
                             <div key={stat} className="bg-white/5 rounded-md px-2 py-1.5 text-center">
                               <p className="text-[8px] text-white/25 uppercase">{stat === "spAtk" ? "Sp.Atk" : stat === "spDef" ? "Sp.Def" : stat.charAt(0).toUpperCase() + stat.slice(1)}</p>
