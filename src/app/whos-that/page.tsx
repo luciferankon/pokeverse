@@ -49,8 +49,7 @@ export default function WhosThatPage() {
       setTimer(TIMER_DURATION);
 
       try {
-        let poke = usePreloaded;
-        if (!poke) poke = await fetchPokemon(randId());
+        const poke: Pokemon = usePreloaded ?? (await fetchPokemon(randId()));
         setPokemon(poke);
         setPhase("guessing");
         setTimeout(() => inputRef.current?.focus(), 100);
@@ -124,11 +123,6 @@ export default function WhosThatPage() {
     setPokemon(null);
     setPhase("idle");
   };
-
-  const primaryType = pokemon?.types[0]?.type.name || "normal";
-  const accentColor = typeColors[primaryType] || "#EAB308";
-  const accuracy = total > 0 ? Math.round(((score > 0 ? streak + (total - streak) : 0) / total) * 100) : 0;
-  const correctCount = phase === "correct" ? streak : 0;
 
   const timerPct = (timer / TIMER_DURATION) * 100;
   const timerColor =
