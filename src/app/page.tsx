@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { fetchPokemon, formatPokemonName, getPokemonImageUrl } from "@/lib/api";
+import { Pokemon } from "@/lib/types";
+import TypeBadge from "@/components/TypeBadge";
 
 const features = [
   {
@@ -9,36 +12,60 @@ const features = [
     title: "PokéDex",
     subtitle: "Explorer",
     description:
-      "Browse all 1025+ Pokémon. Search by name, filter by type, explore stats, evolution chains, and type matchups.",
+      "Browse all 1025+ Pokémon. Search by name, filter by type and generation, explore stats, evolution chains, and type matchups.",
     icon: "📖",
     color: "#EAB308",
-    tags: ["1025+ Pokémon", "Type Filters", "Animated Stats", "Evo Chains"],
+    tags: ["1025+ Pokémon", "Gen Filter", "Animated Stats", "Evo Chains"],
   },
   {
     href: "/team",
     title: "Team",
     subtitle: "Builder",
     description:
-      "Assemble a perfect team of 6. Instantly see type coverage, shared weaknesses, and resistances.",
+      "Assemble a perfect team of 6. Instantly see type coverage, weaknesses, speed tiers, and export to Showdown.",
     icon: "⚔️",
     color: "#22C55E",
-    tags: ["6-Slot Teams", "Type Coverage", "Weakness Analysis", "Resistance Chart"],
+    tags: ["6-Slot Teams", "Type Coverage", "Speed Tiers", "Showdown Export"],
   },
   {
     href: "/whos-that",
     title: "Who's That",
     subtitle: "Pokémon?",
     description:
-      "Test your Pokémon knowledge with silhouette challenges. All generations. Track your streak.",
+      "Test your knowledge with silhouette challenges. Choose generations, track your streak and leaderboard.",
     icon: "❓",
     color: "#EC4899",
-    tags: ["All Generations", "Streak Tracker", "Timer Mode", "Instant Reveal"],
+    tags: ["All Gens", "Leaderboard", "Timer Mode", "Pixel Mode"],
+  },
+  {
+    href: "/compare",
+    title: "Pokémon",
+    subtitle: "Compare",
+    description:
+      "Put two Pokémon head to head. Radar chart overlay, stat bars, and type comparison side by side.",
+    icon: "⚖️",
+    color: "#818CF8",
+    tags: ["Radar Chart", "Stat Bars", "Type Diff", "Side by Side"],
   },
 ];
 
 export default function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [potd, setPotd] = useState<Pokemon | null>(null);
+  const [potdLoading, setPotdLoading] = useState(true);
 
+  // Deterministic Pokémon of the Day
+  useEffect(() => {
+    const d = new Date();
+    const potdId =
+      (d.getFullYear() * 365 + (d.getMonth() + 1) * 30 + d.getDate()) % 1025 + 1;
+    fetchPokemon(potdId)
+      .then((p) => setPotd(p))
+      .catch(() => {})
+      .finally(() => setPotdLoading(false));
+  }, []);
+
+  // Canvas particles
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -105,8 +132,7 @@ export default function HomePage() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* Hero */}
-        <div className="text-center mb-24">
-          {/* Pokéball */}
+        <div className="text-center mb-16">
           <div className="flex justify-center mb-10">
             <div
               className="relative w-20 h-20"
@@ -151,8 +177,62 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Pokémon of the Day */}
+        <div className="mb-12">
+          <div className="rounded-2xl border border-white/5 bg-[#111120] overflow-hidden">
+            <div className="flex items-center gap-3 px-6 py-3 border-b border-white/5">
+              <span className="text-sm font-semibold text-white/40 uppercase tracking-wider">
+                ✨ Pokémon of the Day
+              </span>
+              <span className="text-xs text-white/20">
+                {new Date().toLocaleDateString("en-AU", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
+            {potdLoading ? (
+              <div className="p-6 flex items-center gap-6">
+                <div className="w-24 h-24 skeleton rounded-xl flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-5 w-32 skeleton rounded" />
+                  <div className="h-3 w-20 skeleton rounded" />
+                </div>
+              </div>
+            ) : potd ? (
+              <Link
+                href={`/dex/${potd.id}`}
+                className="flex items-center gap-6 p-6 hover:bg-white/[0.02] transition-colors group"
+              >
+                <img
+                  src={getPokemonImageUrl(potd.id)}
+                  alt={potd.name}
+                  className="w-24 h-24 object-contain drop-shadow-lg group-hover:scale-105 transition-transform flex-shrink-0"
+                />
+                <div>
+                  <p className="text-xs text-white/30 font-mono mb-1">
+                    #{String(potd.id).padStart(4, "0")}
+                  </p>
+                  <h2 className="text-2xl font-black text-white mb-2">
+                    {formatPokemonName(potd.name)}
+                  </h2>
+                  <div className="flex gap-2">
+                    {potd.types.map(({ type }) => (
+                      <TypeBadge key={type.name} type={type.name} size="md" />
+                    ))}
+                  </div>
+                </div>
+                <div className="ml-auto text-white/20 group-hover:text-white/50 transition-colors text-xl pr-2">
+                  →
+                </div>
+              </Link>
+            ) : null}
+          </div>
+        </div>
+
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-20">
           {features.map(({ href, title, subtitle, description, icon, color, tags }) => (
             <Link key={href} href={href} className="block">
               <div className="group relative rounded-2xl border border-white/5 bg-[#111120] p-6 hover:border-white/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden h-full cursor-pointer">

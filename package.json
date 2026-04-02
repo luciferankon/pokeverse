@@ -14,7 +14,8 @@
     "react-dom": "^19.0.0",
     "framer-motion": "^11.11.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.4"
+    "tailwind-merge": "^2.5.4",
+    "recharts": "^2.13.3"
   },
   "devDependencies": {
     "typescript": "^5",

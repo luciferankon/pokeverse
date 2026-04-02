@@ -8,6 +8,8 @@ const navItems = [
   { href: "/dex", label: "PokéDex", icon: "📖", color: "#EAB308" },
   { href: "/team", label: "Team Builder", icon: "⚔️", color: "#22C55E" },
   { href: "/whos-that", label: "Who's That?", icon: "❓", color: "#EC4899" },
+  { href: "/compare", label: "Compare", icon: "⚖️", color: "#818CF8" },
+  { href: "/favourites", label: "Favourites", icon: "⭐", color: "#EAB308" },
 ];
 
 export default function Navigation() {
@@ -40,7 +42,7 @@ export default function Navigation() {
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                     active
                       ? "bg-white/10 text-white"
                       : "text-white/50 hover:text-white hover:bg-white/5"
