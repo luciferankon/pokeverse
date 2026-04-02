@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   fetchPokemon,
@@ -9,7 +9,6 @@ import {
   fetchEvolutionChain,
   formatPokemonName,
   getPokemonImageUrl,
-  getPokemonAnimatedUrl,
   calculateTypeMatchups,
 } from "@/lib/api";
 import { Pokemon, PokemonSpecies, EvolutionChain, TypeMatchups } from "@/lib/types";
@@ -17,10 +16,10 @@ import TypeBadge from "@/components/TypeBadge";
 import StatBar from "@/components/StatBar";
 import EvolutionChainDisplay from "@/components/EvolutionChain";
 import { typeColors } from "@/lib/typeColors";
+import { useFavourites } from "@/hooks/useFavourites";
 
 export default function PokemonDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
 
   const [pokemon, setPokemon] = useState<Pokemon | null>(null);
@@ -31,6 +30,8 @@ export default function PokemonDetailPage() {
   const [error, setError] = useState(false);
   const [showShiny, setShowShiny] = useState(false);
   const [imgError, setImgError] = useState(false);
+
+  const { isFavourite, toggle } = useFavourites();
 
   useEffect(() => {
     if (!id) return;
@@ -69,10 +70,7 @@ export default function PokemonDetailPage() {
         <div className="text-5xl mb-4">😢</div>
         <h2 className="text-xl font-bold text-white mb-2">Pokémon not found</h2>
         <p className="text-white/40 mb-6">Could not find #{id}</p>
-        <Link
-          href="/dex"
-          className="px-6 py-2.5 bg-[#dc2626] text-white rounded-xl font-medium"
-        >
+        <Link href="/dex" className="px-6 py-2.5 bg-[#dc2626] text-white rounded-xl font-medium">
           Back to PokéDex
         </Link>
       </div>
@@ -94,6 +92,7 @@ export default function PokemonDetailPage() {
 
   const prevId = pokemon.id > 1 ? pokemon.id - 1 : null;
   const nextId = pokemon.id < 1025 ? pokemon.id + 1 : null;
+  const fav = isFavourite(pokemon.id);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -131,16 +130,12 @@ export default function PokemonDetailPage() {
           {/* Hero card */}
           <div
             className="rounded-2xl border border-white/5 bg-[#111120] overflow-hidden mb-5"
-            style={{
-              background: `linear-gradient(135deg, #111120, ${accentColor}18)`,
-            }}
+            style={{ background: `linear-gradient(135deg, #111120, ${accentColor}18)` }}
           >
             <div className="relative p-8 flex flex-col items-center">
               <div
                 className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: `radial-gradient(circle at 70% 30%, ${accentColor}20, transparent 60%)`,
-                }}
+                style={{ background: `radial-gradient(circle at 70% 30%, ${accentColor}20, transparent 60%)` }}
               />
 
               {/* Number + badges */}
@@ -172,9 +167,7 @@ export default function PokemonDetailPage() {
                     style={showShiny ? { imageRendering: "pixelated" } : {}}
                   />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center text-6xl">
-                    ?
-                  </div>
+                  <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center text-6xl">?</div>
                 )}
               </div>
 
@@ -193,17 +186,35 @@ export default function PokemonDetailPage() {
                 ))}
               </div>
 
-              {/* Shiny toggle */}
-              <button
-                onClick={() => setShowShiny(!showShiny)}
-                className={`relative z-10 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  showShiny
-                    ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
-                    : "bg-white/5 text-white/40 border-white/10 hover:text-white/60"
-                }`}
-              >
-                ✨ {showShiny ? "Shiny" : "Normal"}
-              </button>
+              {/* Action buttons */}
+              <div className="flex gap-2 relative z-10 flex-wrap justify-center">
+                <button
+                  onClick={() => setShowShiny(!showShiny)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    showShiny
+                      ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
+                      : "bg-white/5 text-white/40 border-white/10 hover:text-white/60"
+                  }`}
+                >
+                  ✨ {showShiny ? "Shiny" : "Normal"}
+                </button>
+                <button
+                  onClick={() => toggle(pokemon.id)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    fav
+                      ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
+                      : "bg-white/5 text-white/40 border-white/10 hover:text-white/60"
+                  }`}
+                >
+                  {fav ? "★ Saved" : "☆ Favourite"}
+                </button>
+                <Link
+                  href={`/compare?a=${pokemon.id}`}
+                  className="px-4 py-1.5 rounded-full text-xs font-semibold border bg-white/5 text-white/40 border-white/10 hover:text-white/60 transition-all"
+                >
+                  ⚖️ Compare
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -221,19 +232,11 @@ export default function PokemonDetailPage() {
             {[
               { label: "Height", value: `${(pokemon.height / 10).toFixed(1)} m` },
               { label: "Weight", value: `${(pokemon.weight / 10).toFixed(1)} kg` },
-              {
-                label: "Base XP",
-                value: pokemon.base_experience?.toLocaleString() || "—",
-              },
-              {
-                label: "Generation",
-                value: species?.generation.name.replace("generation-", "Gen ").toUpperCase() || "—",
-              },
+              { label: "Base XP", value: pokemon.base_experience?.toLocaleString() || "—" },
+              { label: "Generation", value: species?.generation.name.replace("generation-", "Gen ").toUpperCase() || "—" },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-xl border border-white/5 bg-[#111120] p-4">
-                <p className="text-[11px] text-white/30 uppercase tracking-wider mb-1">
-                  {label}
-                </p>
+                <p className="text-[11px] text-white/30 uppercase tracking-wider mb-1">{label}</p>
                 <p className="text-base font-bold text-white">{value}</p>
               </div>
             ))}
@@ -241,9 +244,7 @@ export default function PokemonDetailPage() {
 
           {/* Abilities */}
           <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
-            <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">
-              Abilities
-            </h3>
+            <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">Abilities</h3>
             <div className="flex flex-wrap gap-2">
               {pokemon.abilities.map(({ ability, is_hidden }) => (
                 <span
@@ -255,9 +256,7 @@ export default function PokemonDetailPage() {
                   }`}
                 >
                   {ability.name.replace(/-/g, " ")}
-                  {is_hidden && (
-                    <span className="ml-1 text-purple-400/60">(hidden)</span>
-                  )}
+                  {is_hidden && <span className="ml-1 text-purple-400/60">(hidden)</span>}
                 </span>
               ))}
             </div>
@@ -269,21 +268,14 @@ export default function PokemonDetailPage() {
           {/* Base Stats */}
           <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
-                Base Stats
-              </h3>
+              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">Base Stats</h3>
               <span className="text-sm font-bold text-white/60">
-                Total:{" "}
-                <span className="text-white">{totalStats}</span>
+                Total: <span className="text-white">{totalStats}</span>
               </span>
             </div>
             <div className="space-y-2.5">
               {pokemon.stats.map((s) => (
-                <StatBar
-                  key={s.stat.name}
-                  statName={s.stat.name}
-                  value={s.base_stat}
-                />
+                <StatBar key={s.stat.name} statName={s.stat.name} value={s.base_stat} />
               ))}
             </div>
           </div>
@@ -291,9 +283,7 @@ export default function PokemonDetailPage() {
           {/* Type Matchups */}
           {matchups && (
             <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
-              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
-                Type Matchups
-              </h3>
+              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">Type Matchups</h3>
               <div className="space-y-3">
                 {matchups.doubleWeaknesses.length > 0 && (
                   <MatchupRow label="4×" types={matchups.doubleWeaknesses} color="#EF4444" />
@@ -317,9 +307,7 @@ export default function PokemonDetailPage() {
           {/* Evolution Chain */}
           {evo && (
             <div className="rounded-2xl border border-white/5 bg-[#111120] p-5">
-              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
-                Evolution Chain
-              </h3>
+              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">Evolution Chain</h3>
               <EvolutionChainDisplay chain={evo.chain} />
             </div>
           )}
@@ -332,16 +320,9 @@ export default function PokemonDetailPage() {
 function MatchupRow({ label, types, color }: { label: string; types: string[]; color: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span
-        className="text-xs font-bold w-7 shrink-0 text-right"
-        style={{ color }}
-      >
-        {label}
-      </span>
+      <span className="text-xs font-bold w-7 shrink-0 text-right" style={{ color }}>{label}</span>
       <div className="flex flex-wrap gap-1">
-        {types.map((t) => (
-          <TypeBadge key={t} type={t} size="sm" />
-        ))}
+        {types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
       </div>
     </div>
   );

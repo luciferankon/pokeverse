@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Pokemon } from "@/lib/types";
 import { fetchPokemon, getPokemonIdFromUrl } from "@/lib/api";
 import PokemonCard from "@/components/PokemonCard";
@@ -10,12 +11,27 @@ const ALL_TYPES = [
   "normal","fire","water","electric","grass","ice","fighting","poison",
   "ground","flying","psychic","bug","rock","ghost","dragon","dark","steel","fairy",
 ];
+
+const GENS: Record<string, { min: number; max: number }> = {
+  "All":   { min: 1,   max: 1025 },
+  "Gen 1": { min: 1,   max: 151  },
+  "Gen 2": { min: 152, max: 251  },
+  "Gen 3": { min: 252, max: 386  },
+  "Gen 4": { min: 387, max: 493  },
+  "Gen 5": { min: 494, max: 649  },
+  "Gen 6": { min: 650, max: 721  },
+  "Gen 7": { min: 722, max: 809  },
+  "Gen 8": { min: 810, max: 905  },
+  "Gen 9": { min: 906, max: 1025 },
+};
+
 const PAGE_SIZE = 24;
 const BASE = "https://pokeapi.co/api/v2";
 
 interface ListItem { name: string; id: number }
 
 export default function DexPage() {
+  const router = useRouter();
   const [masterList, setMasterList] = useState<ListItem[]>([]);
   const [filteredList, setFilteredList] = useState<ListItem[]>([]);
   const [cards, setCards] = useState<Pokemon[]>([]);
@@ -24,6 +40,7 @@ export default function DexPage() {
   const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState("");
+  const [activeGen, setActiveGen] = useState("All");
   const [pageOffset, setPageOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,27 +61,32 @@ export default function DexPage() {
       });
   }, []);
 
-  // Handle type filter change
+  // Handle type + gen filter change
   useEffect(() => {
+    if (masterList.length === 0) return;
+    const genRange = GENS[activeGen] || GENS["All"];
+    const genList = masterList.filter(p => p.id >= genRange.min && p.id <= genRange.max);
+
     if (!activeType) {
-      setFilteredList(masterList);
+      setFilteredList(genList);
       return;
     }
     fetch(`${BASE}/type/${activeType}`)
       .then((r) => r.json())
       .then((d) => {
-        const list: ListItem[] = d.pokemon
+        const typeList: ListItem[] = d.pokemon
           .map((e: { pokemon: { name: string; url: string } }) => ({
             name: e.pokemon.name,
             id: getPokemonIdFromUrl(e.pokemon.url),
           }))
           .filter((p: ListItem) => p.id <= 1025)
           .sort((a: ListItem, b: ListItem) => a.id - b.id);
-        setFilteredList(list);
+        const genIds = new Set(genList.map(p => p.id));
+        setFilteredList(typeList.filter(p => genIds.has(p.id)));
       });
-  }, [activeType, masterList]);
+  }, [activeType, activeGen, masterList]);
 
-  // Search debounce: apply against filteredList
+  // Search filter
   const getSearchFiltered = useCallback(
     (base: ListItem[], q: string) => {
       if (!q) return base;
@@ -101,7 +123,7 @@ export default function DexPage() {
     []
   );
 
-  // When filteredList changes, reset and load first page
+  // When filteredList or search changes, reset and load first page
   useEffect(() => {
     if (filteredList.length === 0 && masterList.length > 0) {
       setCards([]);
@@ -126,18 +148,34 @@ export default function DexPage() {
     loadCards(currentListRef.current, next, cards);
   };
 
+  const handleRandom = () => {
+    const visibleList = getSearchFiltered(filteredList, search);
+    if (visibleList.length === 0) return;
+    const pick = visibleList[Math.floor(Math.random() * visibleList.length)];
+    router.push(`/dex/${pick.id}`);
+  };
+
   const displayCount = getSearchFiltered(filteredList, search).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-1">📖 PokéDex</h1>
-        <p className="text-white/30 text-sm">
-          {totalCount > 0
-            ? `${totalCount.toLocaleString()} Pokémon in the database`
-            : "Loading database..."}
-        </p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1">📖 PokéDex</h1>
+          <p className="text-white/30 text-sm">
+            {totalCount > 0
+              ? `${totalCount.toLocaleString()} Pokémon in the database`
+              : "Loading database..."}
+          </p>
+        </div>
+        <button
+          onClick={handleRandom}
+          disabled={masterList.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-[#111120] border border-white/8 text-white/60 hover:text-white hover:border-white/20 rounded-xl text-sm font-medium transition-all disabled:opacity-40"
+        >
+          🎲 Random
+        </button>
       </div>
 
       {/* Search */}
@@ -172,6 +210,26 @@ export default function DexPage() {
         )}
       </div>
 
+      {/* Generation filter */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {Object.keys(GENS).map((gen) => {
+          const active = activeGen === gen;
+          return (
+            <button
+              key={gen}
+              onClick={() => setActiveGen(gen)}
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition-all ${
+                active
+                  ? "bg-[#dc2626]/20 text-[#dc2626] border-[#dc2626]/40"
+                  : "text-white/35 border-white/8 hover:text-white/60 hover:border-white/15"
+              }`}
+            >
+              {gen}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Type filters */}
       <div className="flex flex-wrap gap-2 mb-8">
         <button
@@ -182,7 +240,7 @@ export default function DexPage() {
               : "text-white/35 border-white/8 hover:text-white/60"
           }`}
         >
-          All
+          All Types
         </button>
         {ALL_TYPES.map((type) => {
           const c = typeColors[type];
@@ -208,7 +266,7 @@ export default function DexPage() {
       {!loading && (
         <p className="text-xs text-white/25 mb-5">
           Showing {cards.length} of {displayCount.toLocaleString()} Pokémon
-          {(search || activeType) && " matching filters"}
+          {(search || activeType || activeGen !== "All") && " matching filters"}
         </p>
       )}
 
@@ -242,24 +300,9 @@ export default function DexPage() {
               >
                 {loadingMore ? (
                   <span className="flex items-center gap-2">
-                    <svg
-                      className="animate-spin w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                     Loading…
                   </span>
