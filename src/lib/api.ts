@@ -36,6 +36,18 @@ export async function fetchAbility(nameOrId: string | number) {
   return res.json();
 }
 
+export async function fetchMove(nameOrId: string | number) {
+  const res = await fetch(`${BASE}/move/${nameOrId}`);
+  if (!res.ok) throw new Error(`Failed to fetch move: ${nameOrId}`);
+  return res.json();
+}
+
+export async function fetchItem(nameOrId: string | number) {
+  const res = await fetch(`${BASE}/item/${nameOrId}`);
+  if (!res.ok) throw new Error(`Failed to fetch item: ${nameOrId}`);
+  return res.json();
+}
+
 export function getPokemonIdFromUrl(url: string): number {
   const parts = url.split("/").filter(Boolean);
   return parseInt(parts[parts.length - 1]);
@@ -49,7 +61,6 @@ export function formatPokemonName(name: string): string {
 }
 
 export function getPokemonImageUrl(id: number, shiny = false): string {
-  const variant = shiny ? "shiny" : "other/official-artwork";
   if (shiny) {
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
   }

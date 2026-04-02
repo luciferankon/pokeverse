@@ -36,6 +36,20 @@ export interface PokemonSprites {
   };
 }
 
+export interface PokemonMoveEntry {
+  move: { name: string; url: string };
+  version_group_details: {
+    level_learned_at: number;
+    move_learn_method: { name: string };
+    version_group: { name: string };
+  }[];
+}
+
+export interface HeldItem {
+  item: { name: string; url: string };
+  version_details: { rarity: number; version: { name: string } }[];
+}
+
 export interface Pokemon {
   id: number;
   name: string;
@@ -47,6 +61,8 @@ export interface Pokemon {
   types: PokemonType[];
   abilities: PokemonAbility[];
   species: { name: string; url: string };
+  moves: PokemonMoveEntry[];
+  held_items: HeldItem[];
 }
 
 export interface PokemonSpecies {
@@ -63,6 +79,10 @@ export interface PokemonSpecies {
   is_mythical: boolean;
   generation: { name: string };
   genera: { genus: string; language: { name: string } }[];
+  varieties: {
+    is_default: boolean;
+    pokemon: { name: string; url: string };
+  }[];
 }
 
 export interface EvolutionChainLink {
@@ -73,8 +93,20 @@ export interface EvolutionChainLink {
     item: { name: string } | null;
     trigger: { name: string };
     min_happiness: number | null;
+    min_beauty: number | null;
+    min_affection: number | null;
     time_of_day: string;
     held_item: { name: string } | null;
+    known_move: { name: string } | null;
+    known_move_type: { name: string } | null;
+    location: { name: string } | null;
+    needs_overworld_rain: boolean;
+    party_species: { name: string } | null;
+    party_type: { name: string } | null;
+    relative_physical_stats: number | null;
+    trade_species: { name: string } | null;
+    gender: number | null;
+    turn_upside_down: boolean;
   }[];
 }
 
@@ -89,4 +121,56 @@ export interface TypeMatchups {
   resistances: string[];
   doubleResistances: string[];
   immunities: string[];
+}
+
+export interface MoveDetail {
+  name: string;
+  type: { name: string };
+  damage_class: { name: string };
+  power: number | null;
+  accuracy: number | null;
+  pp: number | null;
+  priority: number;
+  effect_chance: number | null;
+  flavor_text_entries: {
+    flavor_text: string;
+    language: { name: string };
+    version_group: { name: string };
+  }[];
+  effect_entries: {
+    effect: string;
+    short_effect: string;
+    language: { name: string };
+  }[];
+  learned_by_pokemon: { name: string; url: string }[];
+}
+
+export interface AbilityDetail {
+  name: string;
+  flavor_text_entries: {
+    flavor_text: string;
+    language: { name: string };
+    version_group: { name: string };
+  }[];
+  effect_entries: {
+    effect: string;
+    short_effect: string;
+    language: { name: string };
+  }[];
+}
+
+export interface ItemDetail {
+  name: string;
+  sprites: { default: string | null };
+  flavor_text_entries: {
+    text: string;
+    language: { name: string };
+    version_group: { name: string };
+  }[];
+  effect_entries: {
+    effect: string;
+    short_effect: string;
+    language: { name: string };
+  }[];
+  category: { name: string };
 }
