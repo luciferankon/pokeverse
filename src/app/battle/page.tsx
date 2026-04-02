@@ -117,30 +117,20 @@ function injectCSS() {
   const el = document.createElement("style");
   el.id = STYLE_ID;
   el.textContent = `
-    @keyframes pv-bob{0%,100%{transform:translateY(0) scaleX(-1)}50%{transform:translateY(-4px) scaleX(-1)}}
-    @keyframes pv-bob-opp{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-    @keyframes pv-atk-r{0%{transform:translateX(0) scaleX(-1)}25%{transform:translateX(40px) scaleX(-1)}50%{transform:translateX(40px) scaleX(-1) scale(1.05)}100%{transform:translateX(0) scaleX(-1)}}
+    @keyframes pv-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    @keyframes pv-atk-r{0%{transform:translateX(0)}25%{transform:translateX(40px)}50%{transform:translateX(40px) scale(1.05)}100%{transform:translateX(0)}}
     @keyframes pv-atk-l{0%{transform:translateX(0)}25%{transform:translateX(-40px)}50%{transform:translateX(-40px) scale(1.05)}100%{transform:translateX(0)}}
     @keyframes pv-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-    @keyframes pv-shake-p{0%,100%{transform:translateX(0) scaleX(-1)}20%{transform:translateX(-6px) scaleX(-1)}40%{transform:translateX(6px) scaleX(-1)}60%{transform:translateX(-4px) scaleX(-1)}80%{transform:translateX(4px) scaleX(-1)}}
     @keyframes pv-faint{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(30px)}}
-    @keyframes pv-faint-p{0%{opacity:1;transform:translateY(0) scaleX(-1)}100%{opacity:0;transform:translateY(30px) scaleX(-1)}}
     @keyframes pv-enter{0%{opacity:0;transform:scale(.4)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
-    @keyframes pv-enter-p{0%{opacity:0;transform:scale(.4) scaleX(-1)}60%{transform:scale(1.08) scaleX(-1)}100%{opacity:1;transform:scale(1) scaleX(-1)}}
     @keyframes pv-flash{0%,100%{opacity:1}50%{opacity:.25}}
-    @keyframes pv-flash-p{0%,100%{opacity:1;transform:scaleX(-1)}50%{opacity:.25;transform:scaleX(-1)}}
     .pv-bob{animation:pv-bob 2s ease-in-out infinite}
-    .pv-bob-opp{animation:pv-bob-opp 2s ease-in-out infinite}
     .pv-atk-r{animation:pv-atk-r .45s ease-in-out}
     .pv-atk-l{animation:pv-atk-l .45s ease-in-out}
     .pv-shake{animation:pv-shake .35s ease-in-out}
-    .pv-shake-p{animation:pv-shake-p .35s ease-in-out}
     .pv-faint{animation:pv-faint .7s ease-in forwards}
-    .pv-faint-p{animation:pv-faint-p .7s ease-in forwards}
     .pv-enter{animation:pv-enter .5s ease-out}
-    .pv-enter-p{animation:pv-enter-p .5s ease-out}
     .pv-flash{animation:pv-flash .12s ease-in-out 3}
-    .pv-flash-p{animation:pv-flash-p .12s ease-in-out 3}
   `;
   document.head.appendChild(el);
 }
@@ -188,19 +178,9 @@ const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const hpColor = (pct: number) => pct > .5 ? "#4ADE80" : pct > .25 ? "#FACC15" : "#EF4444";
 const hpPct = (cur: number, max: number) => Math.max(0, Math.min(100, (cur / max) * 100));
 
-const animClassPlayer = (a: Anim) => {
+const animClass = (a: Anim, isPlayer: boolean) => {
   if (a === "idle") return "pv-bob";
-  if (a === "atk") return "pv-atk-r";
-  if (a === "hit") return "pv-shake-p";
-  if (a === "faint") return "pv-faint-p";
-  if (a === "enter") return "pv-enter-p";
-  if (a === "flash") return "pv-flash-p";
-  return "";
-};
-
-const animClassOpp = (a: Anim) => {
-  if (a === "idle") return "pv-bob-opp";
-  if (a === "atk") return "pv-atk-l";
+  if (a === "atk") return isPlayer ? "pv-atk-r" : "pv-atk-l";
   if (a === "hit") return "pv-shake";
   if (a === "faint") return "pv-faint";
   if (a === "enter") return "pv-enter";
@@ -938,23 +918,21 @@ export default function BattlePage() {
         <div className="absolute z-[5] top-[8%] sm:top-[12%] right-[2%] sm:right-[8%]">
           <img
             src={ai.sprite} alt={ai.name}
-            className={`w-28 h-28 sm:w-40 md:w-48 sm:h-40 md:h-48 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClassOpp(aAnim)}`}
+            className={`w-28 h-28 sm:w-40 md:w-48 sm:h-40 md:h-48 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClass(aAnim, false)}`}
             style={aAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
           />
           <div className="mx-auto mt-[-4px] w-16 sm:w-24 h-3 sm:h-4 rounded-[50%] bg-black/25 blur-[4px]" />
         </div>
 
-        {/* --- Player (bottom-left) - sprite faces RIGHT (toward opponent) --- */}
+        {/* --- Player (bottom-left) - wrapper flips sprite to face opponent --- */}
         <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 z-10">
           <Nameplate pokemon={player} displayHp={dpHp} isPlayer={true} teamDots={pDots} />
         </div>
-        <div className="absolute z-[5] bottom-[4%] sm:bottom-[8%] left-[1%] sm:left-[5%]">
+        <div className="absolute z-[5] bottom-[4%] sm:bottom-[8%] left-[1%] sm:left-[5%]" style={{ transform: "scaleX(-1)" }}>
           <img
             src={player.sprite} alt={player.name}
-            className={`w-32 h-32 sm:w-44 md:w-56 sm:h-44 md:h-56 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClassPlayer(pAnim)}`}
-            style={{
-              ...(pAnim === "faint" ? { filter: "grayscale(.7)" } : {}),
-            }}
+            className={`w-32 h-32 sm:w-44 md:w-56 sm:h-44 md:h-56 drop-shadow-[0_8px_24px_rgba(0,0,0,.5)] ${animClass(pAnim, true)}`}
+            style={pAnim === "faint" ? { filter: "grayscale(.7)" } : {}}
           />
           <div className="mx-auto mt-[-4px] w-18 sm:w-28 h-3 sm:h-4 rounded-[50%] bg-black/25 blur-[4px]" />
         </div>
@@ -965,8 +943,8 @@ export default function BattlePage() {
         </div>
       </div>
 
-      {/* === BOTTOM: Controls === */}
-      <div className="flex-1 bg-[#0f1219] border-t border-white/5 flex flex-col min-h-0">
+      {/* === BOTTOM: Controls - fills remaining screen === */}
+      <div className="flex-1 bg-[#0f1219] border-t border-white/5 flex flex-col min-h-0 max-h-[60vh]">
 
         {/* Message box */}
         <div className="border-b border-white/5 px-3 sm:px-5 py-2 sm:py-3 min-h-[40px] sm:min-h-[48px] flex items-center justify-between flex-shrink-0">
@@ -1012,19 +990,19 @@ export default function BattlePage() {
           ))}
         </div>
 
-        {/* Panel content */}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-3" style={{ WebkitOverflowScrolling: "touch" }}>
+        {/* Panel content - fills remaining space */}
+        <div className="flex-1 overflow-y-auto p-2 sm:p-3 flex flex-col" style={{ WebkitOverflowScrolling: "touch" }}>
 
           {/* === FIGHT PANEL === */}
           {panel === "fight" && (
-            <>
+            <div className="flex-1 flex flex-col">
               {!busy && !winner ? (
-                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2 h-full">
                   {player.moves.map((m, i) => {
                     const clr = TYPE_CLR[m.type] || "#666";
                     const showTip = hoveredMove === i || tappedMove === i;
                     return (
-                      <div key={i} className="relative">
+                      <div key={i} className="relative flex">
                         {showTip && <MoveTooltip move={m} onClose={() => setTappedMove(null)} />}
                         <button
                           onClick={() => {
@@ -1043,15 +1021,15 @@ export default function BattlePage() {
                             if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
                           }}
                           disabled={m.pp <= 0}
-                          className="w-full relative p-2 sm:p-3 rounded-lg text-left transition-all hover:brightness-125 active:scale-[.97] disabled:opacity-20 disabled:cursor-not-allowed overflow-hidden"
+                          className="w-full relative p-3 sm:p-4 rounded-lg text-left transition-all hover:brightness-125 active:scale-[.97] disabled:opacity-20 disabled:cursor-not-allowed overflow-hidden flex flex-col justify-center"
                           style={{ background: `${clr}18`, border: `1px solid ${clr}33` }}
                         >
                           <div className="absolute top-0 left-0 w-1 h-full rounded-l" style={{ background: clr }} />
-                          <div className="flex items-center justify-between mb-0.5 sm:mb-1 pl-1.5 sm:pl-2">
-                            <span className="font-bold text-xs sm:text-sm text-white/90 truncate mr-1">{formatName(m.name)}</span>
+                          <div className="flex items-center justify-between mb-1 sm:mb-1.5 pl-1.5 sm:pl-2">
+                            <span className="font-bold text-sm sm:text-base text-white/90 truncate mr-1">{formatName(m.name)}</span>
                             <TypeBadge type={m.type} />
                           </div>
-                          <div className="flex items-center gap-2 sm:gap-3 pl-1.5 sm:pl-2 text-[9px] sm:text-[10px] text-white/30 font-mono">
+                          <div className="flex items-center gap-2 sm:gap-3 pl-1.5 sm:pl-2 text-[10px] sm:text-[11px] text-white/30 font-mono">
                             {m.power && <span>PWR {m.power}</span>}
                             {m.accuracy && <span>ACC {m.accuracy}</span>}
                             <span className="ml-auto">{m.pp}/{m.maxPp}</span>
@@ -1063,11 +1041,11 @@ export default function BattlePage() {
                   })}
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center text-white/15 text-sm py-6">
+                <div className="flex-1 flex items-center justify-center text-white/15 text-sm py-6">
                   {winner ? "Battle over" : "Waiting..."}
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* === BAG PANEL === */}
