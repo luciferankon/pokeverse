@@ -112,9 +112,7 @@ export default function PokemonDetailPage() {
   const genus = species?.genera.find((g) => g.language.name === "en")?.genus || "";
   const totalStats = pokemon.stats.reduce((s, st) => s + st.base_stat, 0);
 
-  const imageUrl = showShiny
-    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${pokemon.id}.png`
-    : getPokemonImageUrl(pokemon.id);
+  const imageUrl = getPokemonImageUrl(pokemon.id, showShiny);
 
   const prevId = pokemon.id > 1 ? pokemon.id - 1 : null;
   const nextId = pokemon.id < 1025 ? pokemon.id + 1 : null;
@@ -194,7 +192,6 @@ export default function PokemonDetailPage() {
                     alt={pokemon.name}
                     className="w-full h-full object-contain drop-shadow-2xl"
                     onError={() => setImgError(true)}
-                    style={showShiny ? { imageRendering: "pixelated" } : {}}
                   />
                 ) : (
                   <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center text-6xl">
@@ -221,7 +218,7 @@ export default function PokemonDetailPage() {
               {/* Action buttons */}
               <div className="flex gap-2 relative z-10 flex-wrap justify-center">
                 <button
-                  onClick={() => setShowShiny(!showShiny)}
+                  onClick={() => { setShowShiny(!showShiny); setImgError(false); }}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                     showShiny
                       ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
