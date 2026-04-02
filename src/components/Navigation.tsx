@@ -9,6 +9,7 @@ const navItems = [
   { href: "/team", label: "Team Builder", icon: "\u2694\ufe0f", color: "#22C55E" },
   { href: "/whos-that", label: "Who's That?", icon: "\u2753", color: "#EC4899" },
   { href: "/compare", label: "Compare", icon: "\u2696\ufe0f", color: "#818CF8" },
+  { href: "/battle", label: "Battle", icon: "\ud83d\udca5", color: "#EF4444" },
   { href: "/items", label: "Items", icon: "\ud83c\udf92", color: "#F97316" },
   { href: "/favourites", label: "Favourites", icon: "\u2b50", color: "#EAB308" },
 ];
