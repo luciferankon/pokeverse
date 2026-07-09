@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "raw.githubusercontent.com",
-        pathname: "/PokeAPI/**",
+        hostname: "cdn.jsdelivr.net",
+        pathname: "/gh/PokeAPI/**",
       },
     ],
   },

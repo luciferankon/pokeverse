@@ -233,7 +233,7 @@ export default function TeamBuilderPage() {
                 <div className="absolute top-full left-0 right-0 mt-1 bg-[#111120] border border-white/10 rounded-xl overflow-hidden z-30 shadow-2xl">
                   {results.map((p) => (
                     <button key={p.id} onClick={() => addPokemon(p.id)} className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-white/5 transition-colors text-left">
-                      <img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`} alt={p.name} className="w-8 h-8 object-contain" />
+                      <img src={`https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${p.id}.png`} alt={p.name} className="w-8 h-8 object-contain" />
                       <span className="text-sm text-white capitalize">{formatPokemonName(p.name)}</span>
                       <span className="ml-auto text-xs text-white/25 font-mono">#{String(p.id).padStart(4, "0")}</span>
                     </button>

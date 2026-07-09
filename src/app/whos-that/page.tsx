@@ -177,7 +177,7 @@ export default function WhosThatPage() {
 
   const spriteUrl = (id: number) =>
     pixelMode
-      ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+      ? `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`
       : getPokemonImageUrl(id);
 
   const timerPct = (timer / TIMER_DURATION) * 100;
